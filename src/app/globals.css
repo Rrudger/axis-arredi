@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary:  #2d4b69;
+  --color-secondary: #99c1d6;
+  --color-accent:    #F4D35E; /* Naples yellow */
+  --color-error:     #B04A5A; /* Muted Raspberry Red */
+  --color-success:   #4F8A72; /* Dusty Teal */
+  --color-black: #333333; /* soft black */
+  --color-grey: #C2C2C2;
+
+  --font-sans: 'IBM Plex Sans', sans-serif;
+
+  --text-sm: 14px;
+  --text-sm--line-height: 20px;
+  --text-smtablet: 13px;
+  --text-smtablet--line-height: 18px;
+  --text-smmobile: 12px;
+  --text-smmobile--line-height: 16px;
+
+ /* Base Text */
+  --text-base: 18px;
+  --text-base--line-height: 32px;
+  --text-basetablet: 16px;
+  --text-basetablet--line-height: 22px;
+  --text-basemobile: 14px;
+  --text-basemobile--line-height: 20px;
+
+ /* Medium Text */
+  --text-m: 20px;
+  --text-m--line-height: 28px;
+  --text-mtablet: 18px;
+  --text-mtablet--line-height: 26px;
+  --text-mmobile: 16px;
+  --text-mmobile--line-height: 24px;
+
+ /* Large Text */
+  --text-lg: 32px;
+  --text-lg--line-height: 40px;
+  --text-lgtablet: 28px;
+  --text-lgtablet--line-height: 36px;
+  --text-lgmobile: 24px;
+  --text-lgmobile--line-height: 32px;
+
+}
