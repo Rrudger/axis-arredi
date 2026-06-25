@@ -12,7 +12,11 @@ export default function Icon() {
       <div
         style={{
           fontSize: 24,
-          background: '#2d4b69',
+          // OG/ImageResponse (Satori) не поддерживает CSS-переменные —
+          // цвет фавикона задаётся литералом. При смене темы поставьте
+          // --color-primary активной темы: sage #8FA68C / terracotta #C4907A /
+          // clay #A47764 / olive #7A7A45 / taupe #9E8B72.
+          background: '#8FA68C',
           width: '100%',
           height: '100%',
           display: 'flex',

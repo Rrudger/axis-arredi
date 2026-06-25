@@ -1,19 +1,33 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans } from "next/font/google";
+import { Lora, Cinzel, Italianno } from "next/font/google";
 import {NextIntlClientProvider} from 'next-intl';
 import { getLocale } from 'next-intl/server';
 import "./globals.css";
 
-const ibmPlexSans = IBM_Plex_Sans({
+const cinzel = Cinzel({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: '--font-cinzel',
+  display: 'swap',
+});
+
+const italianno = Italianno({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'], 
-  variable: '--font-ibm',
+  weight: ['400'],
+  variable: '--font-italianno',
+  display: 'swap',
+});
+
+const lora = Lora({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-lora',
   display: 'swap',
 })
 
 export const metadata: Metadata = {
-  title: "add title",
-  description: "The title must be added",
+  title: "Axis arredi",
+  description: "Axis arredi — L'arte di vivere lo spazio",
 };
 
 export default async function RootLayout({
@@ -25,7 +39,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale}>
-      <body   className={`${ibmPlexSans.variable} antialiased`}>
+      <body className={`${cinzel.variable} ${italianno.variable} ${lora.variable} antialiased`}>
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
     </html>

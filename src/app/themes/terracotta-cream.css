@@ -1,0 +1,43 @@
+/* ─────────────────────────────────────────────────────────────
+   ТЕМА: «Терракота-роза / Крем»
+   primary  = #F0EFEB  (кремовый — фон)
+   secondary= #C4907A  (тёплая терракота-роза — акцент)
+
+   Подключается через @import в globals.css. Чтобы переключить
+   палитру — поменяйте активный @import в globals.css на другой
+   файл из этой папки. Семантика (overlay / тени / границы)
+   выводится из этих переменных автоматически.
+───────────────────────────────────────────────────────────── */
+@theme {
+  /* PRIMARY */
+  --color-primary:         #C4907A;
+  --color-primary-bg:      #F0EFEB;
+  --color-primary-border:  #DCC4B8;
+  --color-primary-light:   #D2A593;
+  --color-primary-dark:    #9E6E59;
+  --color-primary-darker:  #784F3E;
+
+  /* NEUTRAL */
+  --color-neutral-bg:      #F0EFEB;
+  --color-neutral:         #E3DAD2;
+  --color-neutral-mid:     #B8A89C;
+
+  /* BASE */
+  --color-white:           #FAF8F4;
+  --color-black:           #2A201A;
+  --color-grey:            #B8A89C;
+
+  /* MOSAIC — тёмный треугольник экрана 1 / плитки проектов */
+  --color-mosaic-1:        #2A1812;
+  --color-mosaic-2:        #331E16;
+  --color-mosaic-3:        #3D261C;
+  --color-mosaic-4:        #472D21;
+  --color-mosaic-5:        #553529;
+  --color-mosaic-6:        #6A4536;
+  --color-mosaic-7:        #855445;
+  --color-mosaic-8:        #9E6E59;
+
+  /* LEGACY — bg-ground / bg-ground2 */
+  --color-ground:          #F0EFEB;
+  --color-ground2:         #F0EFEB;
+}

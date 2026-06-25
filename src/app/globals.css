@@ -1,45 +1,290 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════
+   АКТИВНАЯ ПАЛИТРА — раскомментируйте ровно одну строку.
+   Все варианты лежат в ./themes/. Семантика (границы, overlay,
+   тени, поверхности) и хардкод в компонентах выводятся из этих
+   переменных автоматически — менять нужно ТОЛЬКО строку ниже.
+═══════════════════════════════════════════════════════════════ */
+/* @import "./themes/sage-cream.css";    крем #F0EFEB / шалфей #8FA68C */
+ /*@import "./themes/terracotta-cream.css"; крем #F0EFEB / терракота-роза #C4907A */
+/* @import "./themes/clay-beige.css";   терракота #A47764 / беж #DDD0C0 */
+/* @import "./themes/olive-cream.css";  оливковый #7A7A45 / крем #F2F0E0 */
+@import "./themes/taupe-cream.css";  /* крем #F0EFEB / таупе #9E8B72 */
+
 @theme {
-  --color-primary:  #2d4b69;
-  --color-secondary: #99c1d6;
-  --color-accent:    #F4D35E; /* Naples yellow */
-  --color-error:     #B04A5A; /* Muted Raspberry Red */
-  --color-success:   #4F8A72; /* Dusty Teal */
-  --color-black: #333333; /* soft black */
-  --color-grey: #C2C2C2;
+  /* ACCENT 1 — янтарь */
+  --color-accent1-bg:      #FDF4E0;
+  --color-accent1-light:   #F0C860;
+  --color-accent1:         #E8A838;
+  --color-accent1-dark:    #A86A10;
 
-  --font-sans: 'IBM Plex Sans', sans-serif;
+  /* ACCENT 2 — коралл */
+  --color-accent2-bg:      #FAE8E4;
+  --color-accent2-light:   #ECA090;
+  --color-accent2:         #D45840;
+  --color-accent2-dark:    #943020;
 
-  --text-sm: 14px;
-  --text-sm--line-height: 20px;
-  --text-smtablet: 13px;
-  --text-smtablet--line-height: 18px;
-  --text-smmobile: 12px;
-  --text-smmobile--line-height: 16px;
+  /* GOLD — приглушённое «старое золото». Тёплый акцент, согласованный с
+     шалфеем/кремом; средний тон, чтобы читаться и на тёмно-зелёном
+     треугольнике, и на кремовом (экран 1). */
+  --color-gold-bg:         #F4ECD6;
+  --color-gold-light:      #DCC074;
+  --color-gold:            #BE9E47;
+  --color-gold-dark:       #8A6E26;
 
- /* Base Text */
-  --text-base: 18px;
-  --text-base--line-height: 32px;
-  --text-basetablet: 16px;
-  --text-basetablet--line-height: 22px;
-  --text-basemobile: 14px;
-  --text-basemobile--line-height: 20px;
+  /* SUCCESS / ERROR */
+  --color-success-bg:      #D8ECFA;
+  --color-success:         #2878C4;
+  --color-success-dark:    #144A8A;
+  --color-error-bg:        #FAD8DC;
+  --color-error:           #C43040;
+  --color-error-dark:      #881828;
 
- /* Medium Text */
-  --text-m: 20px;
-  --text-m--line-height: 28px;
-  --text-mtablet: 18px;
-  --text-mtablet--line-height: 26px;
-  --text-mmobile: 16px;
-  --text-mmobile--line-height: 24px;
+  /* INK — мягкий чёрный для основного текста. Общий для всех тем:
+     фон в любой палитре пастельный, поэтому единый тёплый near-black
+     читается везде и не «звенит» на креме, как чистый #000. */
+  --color-ink:             #26221E;
 
- /* Large Text */
-  --text-lg: 32px;
-  --text-lg--line-height: 40px;
-  --text-lgtablet: 28px;
-  --text-lgtablet--line-height: 36px;
-  --text-lgmobile: 24px;
-  --text-lgmobile--line-height: 32px;
+  /* PRIMARY / NEUTRAL / BASE / MOSAIC / LEGACY — задаются активной
+     темой из ./themes/ (см. @import выше). */
 
+  --breakpoint-desktop: 1023px;
+  --breakpoint-wide: 1700px;
+
+  /* Семейства. Cinzel — заголовки/лейблы; Lora — основной текст;
+     Italianno — рукописный слоган. Значения подставляются из next/font
+     (см. layout.tsx), фолбэк — системное имя. */
+  --font-sans:   var(--font-cinzel, 'Cinzel'), serif;
+  --font-body:   var(--font-lora, 'Lora'), serif;
+  --font-script: var(--font-italianno, 'Italianno'), cursive;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ТИПОГРАФИКА — единый ограниченный набор на весь проект.
+   Семейство + размер + базовые метрики хранятся ВМЕСТЕ в классе.
+   Два набора: мобильный (по умолчанию) и десктопный (≥1023px).
+   Точечные отклонения трекинга задаются utility-классами Tailwind
+   (tracking-[...]) поверх — размеры/семейства в коде не дублируются.
+
+   t-hero      — крупные титры и большие номера (Cinzel)
+   t-display   — заголовки экранов (Cinzel)
+   t-title     — секционные заголовки, eyebrow, поля формы (Cinzel)
+   t-subtitle  — подзаголовки, адрес (Cinzel)
+   t-label     — uppercase-лейблы, кнопки, счётчики (Cinzel)
+   t-caption   — мелкие метки, номера плиток (Cinzel)
+   t-body      — основной текст абзацев (Lora)
+   t-body-sm   — уменьшенный текст (Lora)
+   t-script    — рукописный слоган (Italianno)
+═══════════════════════════════════════════════════════════════ */
+.t-hero, .t-display, .t-title, .t-subtitle, .t-label, .t-caption {
+  font-family: var(--font-sans);
+  font-weight: 400;
+}
+.t-body, .t-body-sm { font-family: var(--font-body); font-weight: 400; color: var(--color-text-primary); }
+.t-script           { font-family: var(--font-script); font-weight: 400; }
+
+.t-hero     { font-size: 28px; line-height: 1.08; letter-spacing: 0.18em; text-transform: uppercase; }
+.t-display  { font-size: 26px; line-height: 1.22; letter-spacing: 0.04em; }
+.t-title    { font-size: 18px; line-height: 1.30; letter-spacing: 0.04em; }
+.t-subtitle { font-size: 14px; line-height: 1.50; letter-spacing: 0.12em; }
+.t-label    { font-size: 10px; line-height: 1.40; letter-spacing: 0.24em; text-transform: uppercase; }
+.t-caption  { font-size:  8px; line-height: 1.40; letter-spacing: 0.12em; }
+.t-body     { font-size: 13px; line-height: 1.75; letter-spacing: 0.04em; }
+.t-body-sm  { font-size: 11px; line-height: 1.70; letter-spacing: 0.03em; }
+.t-script   { font-size: 28px; line-height: 1.15; letter-spacing: 0.02em; }
+
+@media (min-width: 1023px) {
+  .t-hero     { font-size: 40px; }
+  .t-display  { font-size: 34px; line-height: 1.25; }
+  .t-title    { font-size: 22px; }
+  .t-subtitle { font-size: 16px; }
+  .t-label    { font-size: 12px; }
+  .t-caption  { font-size:  9px; }
+  .t-body     { font-size: 14px; line-height: 1.85; }
+  .t-body-sm  { font-size: 12px; }
+  .t-script   { font-size: 44px; }
+}
+
+/* ── Contacts form ─────────────────────────────────────────── */
+.contacts-title {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(22px, 6vw, 30px);
+  font-weight: 400;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+}
+@media (min-width: 768px) {
+  .contacts-title { font-size: clamp(26px, 2.8vw, 42px); }
+}
+
+.contacts-subtitle {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+}
+@media (min-width: 768px) {
+  .contacts-subtitle { font-size: 18px; }
+}
+
+.contacts-label {
+  display: block;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  margin-bottom: 7px;
+}
+@media (min-width: 768px) {
+  .contacts-label { font-size: 13px; }
+}
+
+.contacts-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid var(--color-primary-border);
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  color: var(--color-text-primary);
+  padding: 6px 0 12px;
+  letter-spacing: 0.04em;
+  transition: border-color 0.2s ease;
+}
+@media (min-width: 768px) {
+  .contacts-input { font-size: 21px; }
+}
+.contacts-input:focus { border-bottom-color: var(--color-primary); }
+
+.contacts-textarea {
+  width: 100%;
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
+  border: 1.5px solid var(--color-primary-border);
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  color: var(--color-text-primary);
+  padding: 14px 16px;
+  letter-spacing: 0.04em;
+  line-height: 1.75;
+  resize: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+@media (min-width: 768px) {
+  .contacts-textarea { font-size: 21px; }
+}
+.contacts-textarea:focus {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.contacts-btn-write {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--color-white);
+  background: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+  padding: 16px 48px;
+  cursor: pointer;
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--color-primary-darker) 32%, transparent), inset 0 1px 0 rgba(255,255,255,0.08);
+  transition: background 0.3s ease, color 0.3s ease, transform 0.25s ease, box-shadow 0.3s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (hover: hover) {
+  .contacts-btn-write:hover {
+    background: var(--color-primary);
+    color: var(--color-white);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--color-primary-darker) 18%, transparent);
+  }
+}
+.contacts-btn-write:active {
+  background: var(--color-primary);
+  color: var(--color-white);
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.contacts-btn-send {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--color-white);
+  background: var(--color-primary);
+  border: 2.5px solid var(--color-primary);
+  padding: 15px 44px;
+  cursor: pointer;
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--color-primary-darker) 28%, transparent), inset 0 1px 0 rgba(255,255,255,0.07);
+  transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+}
+.contacts-btn-send:hover {
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--color-primary-darker) 38%, transparent);
+  transform: translateY(-1px);
+}
+.contacts-btn-send:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+@media (min-width: 768px) {
+  .contacts-btn-send { padding: 12px 72px; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Семантические переменные — не используются как Tailwind-классы,
+   только через var() в inline-стилях.
+───────────────────────────────────────────────────────────── */
+:root {
+  /* Типографика */
+  --color-text-primary:    var(--color-ink);
+  --color-text-secondary:  var(--color-primary);
+  --color-text-muted:      var(--color-primary-light);
+  --color-text-hint:       var(--color-neutral-mid);
+  --color-text-inverse:    var(--color-primary-bg);
+  --color-text-accent:     var(--color-accent1);
+
+  /* Границы */
+  --color-border-light:    var(--color-neutral);
+  --color-border:          var(--color-primary-border);
+  --color-border-strong:   var(--color-primary-light);
+
+  /* Поверхности */
+  --surface-page:          var(--color-neutral-bg);
+  --surface-card:          var(--color-white);
+  --surface-dark:          var(--color-primary);
+  --surface-dark-deeper:   var(--color-primary-dark);
+
+  /* Стеклянная плашка на тёмном фоне — самый тёмный тон мозаики */
+  --color-plashka-bg:      color-mix(in srgb, var(--color-mosaic-1) 72%, transparent);
+
+  /* Тень текста */
+  --color-shadow:          color-mix(in srgb, var(--color-mosaic-1) 55%, transparent);
+
+  /* Overlay — фон (primary-bg) на разных уровнях прозрачности.
+     Используется для рамок, линий и SVG-штрихов на тёмных блоках. */
+  --color-overlay-88:      color-mix(in srgb, var(--color-primary-bg) 88%, transparent);
+  --color-overlay-42:      color-mix(in srgb, var(--color-primary-bg) 42%, transparent);
+  --color-overlay-30:      color-mix(in srgb, var(--color-primary-bg) 30%, transparent);
+  --color-overlay-28:      color-mix(in srgb, var(--color-primary-bg) 28%, transparent);
+  --color-overlay-22:      color-mix(in srgb, var(--color-primary-bg) 22%, transparent);
+  --color-overlay-20:      color-mix(in srgb, var(--color-primary-bg) 20%, transparent);
+  --color-overlay-16:      color-mix(in srgb, var(--color-primary-bg) 16%, transparent);
+  --color-overlay-12:      color-mix(in srgb, var(--color-primary-bg) 12%, transparent);
+  --color-overlay-10:      color-mix(in srgb, var(--color-primary-bg) 10%, transparent);
+  --color-overlay-08:      color-mix(in srgb, var(--color-primary-bg) 8%, transparent);
+  --color-overlay-06:      color-mix(in srgb, var(--color-primary-bg) 6%, transparent);
+  --color-overlay-05:      color-mix(in srgb, var(--color-primary-bg) 5%, transparent);
 }

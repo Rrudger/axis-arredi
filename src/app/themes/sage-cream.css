@@ -1,0 +1,43 @@
+/* ─────────────────────────────────────────────────────────────
+   ТЕМА: «Шалфей / Крем»
+   primary  = #F0EFEB  (кремовый — фон)
+   secondary= #8FA68C  (приглушённый зелёный шалфей — акцент)
+
+   Подключается через @import в globals.css. Чтобы переключить
+   палитру — поменяйте активный @import в globals.css на другой
+   файл из этой папки. Семантика (overlay / тени / границы)
+   выводится из этих переменных автоматически.
+───────────────────────────────────────────────────────────── */
+@theme {
+  /* PRIMARY */
+  --color-primary:         #8FA68C;
+  --color-primary-bg:      #F0EFEB;
+  --color-primary-border:  #C8D3C4;
+  --color-primary-light:   #ABBCA8;
+  --color-primary-dark:    #6B8268;
+  --color-primary-darker:  #4E614C;
+
+  /* NEUTRAL */
+  --color-neutral-bg:      #F0EFEB;
+  --color-neutral:         #DDE2D8;
+  --color-neutral-mid:     #A8AFA0;
+
+  /* BASE */
+  --color-white:           #FAF9F4;
+  --color-black:           #1E241C;
+  --color-grey:            #A8AFA0;
+
+  /* MOSAIC — тёмный треугольник экрана 1 / плитки проектов */
+  --color-mosaic-1:        #1A2118;
+  --color-mosaic-2:        #1F281D;
+  --color-mosaic-3:        #273024;
+  --color-mosaic-4:        #2E3A2B;
+  --color-mosaic-5:        #384535;
+  --color-mosaic-6:        #455642;
+  --color-mosaic-7:        #556651;
+  --color-mosaic-8:        #6B8268;
+
+  /* LEGACY — bg-ground / bg-ground2 */
+  --color-ground:          #F0EFEB;
+  --color-ground2:         #F0EFEB;
+}

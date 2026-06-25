@@ -1,0 +1,43 @@
+/* ─────────────────────────────────────────────────────────────
+   ТЕМА: «Таупе / Крем»
+   primary  = #F0EFEB  (кремовый — фон)
+   secondary= #9E8B72  (тёплый таупе — акцент)
+
+   Подключается через @import в globals.css. Чтобы переключить
+   палитру — поменяйте активный @import в globals.css на другой
+   файл из этой папки. Семантика (overlay / тени / границы)
+   выводится из этих переменных автоматически.
+───────────────────────────────────────────────────────────── */
+@theme {
+  /* PRIMARY */
+  --color-primary:         #9E8B72;
+  --color-primary-bg:      #F0EFEB;
+  --color-primary-border:  #C9BCA8;
+  --color-primary-light:   #B6A78F;
+  --color-primary-dark:    #7C6B54;
+  --color-primary-darker:  #5E5040;
+
+  /* NEUTRAL */
+  --color-neutral-bg:      #F0EFEB;
+  --color-neutral:         #E5DFD3;
+  --color-neutral-mid:     #B8AFA4;
+
+  /* BASE */
+  --color-white:           #FAF8F3;
+  --color-black:           #2A241D;
+  --color-grey:            #B8AFA4;
+
+  /* MOSAIC — тёмный треугольник экрана 1 / плитки проектов */
+  --color-mosaic-1:        #2A231C;
+  --color-mosaic-2:        #332B22;
+  --color-mosaic-3:        #3D332A;
+  --color-mosaic-4:        #473C30;
+  --color-mosaic-5:        #524634;
+  --color-mosaic-6:        #5E5040;
+  --color-mosaic-7:        #6E5E48;
+  --color-mosaic-8:        #7C6B54;
+
+  /* LEGACY — bg-ground / bg-ground2 */
+  --color-ground:          #F0EFEB;
+  --color-ground2:         #F0EFEB;
+}

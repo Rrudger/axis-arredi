@@ -1,0 +1,43 @@
+/* ─────────────────────────────────────────────────────────────
+   ТЕМА: «Терракота / Беж»
+   primary  = #A47764  (терракота / глина — акцент)
+   secondary= #DDD0C0  (тёплый беж — фон)
+
+   Подключается через @import в globals.css. Чтобы переключить
+   палитру — поменяйте активный @import в globals.css на другой
+   файл из этой папки. Семантика (overlay / тени / границы)
+   выводится из этих переменных автоматически.
+───────────────────────────────────────────────────────────── */
+@theme {
+  /* PRIMARY */
+  --color-primary:         #A47764;
+  --color-primary-bg:      #DDD0C0;
+  --color-primary-border:  #C6AE9E;
+  --color-primary-light:   #BC9685;
+  --color-primary-dark:    #835C4C;
+  --color-primary-darker:  #634537;
+
+  /* NEUTRAL */
+  --color-neutral-bg:      #DDD0C0;
+  --color-neutral:         #D2C4B2;
+  --color-neutral-mid:     #B0A290;
+
+  /* BASE */
+  --color-white:           #FBF6EF;
+  --color-black:           #2A211B;
+  --color-grey:            #B0A290;
+
+  /* MOSAIC — тёмный треугольник экрана 1 / плитки проектов */
+  --color-mosaic-1:        #2A1C15;
+  --color-mosaic-2:        #33231A;
+  --color-mosaic-3:        #3D2B20;
+  --color-mosaic-4:        #472F23;
+  --color-mosaic-5:        #533829;
+  --color-mosaic-6:        #634537;
+  --color-mosaic-7:        #745142;
+  --color-mosaic-8:        #835C4C;
+
+  /* LEGACY — bg-ground / bg-ground2 */
+  --color-ground:          #DDD0C0;
+  --color-ground2:         #DDD0C0;
+}

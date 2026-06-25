@@ -1,0 +1,43 @@
+/* ─────────────────────────────────────────────────────────────
+   ТЕМА: «Оливковый / Крем»
+   primary  = #7A7A45  (оливковый — акцент)
+   secondary= #F2F0E0  (кремовый — фон)
+
+   Подключается через @import в globals.css. Чтобы переключить
+   палитру — поменяйте активный @import в globals.css на другой
+   файл из этой папки. Семантика (overlay / тени / границы)
+   выводится из этих переменных автоматически.
+───────────────────────────────────────────────────────────── */
+@theme {
+  /* PRIMARY */
+  --color-primary:         #7A7A45;
+  --color-primary-bg:      #F2F0E0;
+  --color-primary-border:  #CAC8A8;
+  --color-primary-light:   #9C9C6E;
+  --color-primary-dark:    #5E5E34;
+  --color-primary-darker:  #45451F;
+
+  /* NEUTRAL */
+  --color-neutral-bg:      #F2F0E0;
+  --color-neutral:         #E6E3CE;
+  --color-neutral-mid:     #B5B39A;
+
+  /* BASE */
+  --color-white:           #FAF9F0;
+  --color-black:           #232318;
+  --color-grey:            #B5B39A;
+
+  /* MOSAIC — тёмный треугольник экрана 1 / плитки проектов */
+  --color-mosaic-1:        #1F1F0E;
+  --color-mosaic-2:        #28280F;
+  --color-mosaic-3:        #313114;
+  --color-mosaic-4:        #3A3A18;
+  --color-mosaic-5:        #45451F;
+  --color-mosaic-6:        #525226;
+  --color-mosaic-7:        #5E5E34;
+  --color-mosaic-8:        #6A6A3C;
+
+  /* LEGACY — bg-ground / bg-ground2 */
+  --color-ground:          #F2F0E0;
+  --color-ground2:         #F2F0E0;
+}
