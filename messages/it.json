@@ -4,64 +4,53 @@
     "region": "Toscana",
     "menu": {
       "home": "Chi siamo",
-      "projects": "Lavorazioni",
+      "projects": "Servizi",
+      "portfolio": "Progetti",
       "contacts": "Contattaci"
     }
   },
   "projects": {
     "title": "I Nostri Lavori",
+    "cta": "Contattaci",
+    "project1": {
+      "label": "Cucina",
+      "title": "Cucina stile Japandi",
+      "description": "Una cucina pensata per ogni centimetro.\n\nIn questo appartamento abbiamo realizzato una cucina completamente su misura: impiallacciatura di rovere e rovere massello, trattato con olio Rubio Monocoat 2C. Top e rivestimento pareti in marmo Travertino. Illuminazione LED integrata su tutta la lunghezza. Pavimento in parquet di rovere abbinato alla cucina. Ogni elemento progettato e realizzato su misura per lo spazio esistente."
+    },
+    "project2": {
+      "label": "Mobile\nportabottiglie",
+      "title": "Mobile portabottiglie + mobile TV",
+      "description": "Dal disegno al prodotto finito — tutto fatto da noi.\n\nQuesto mobile portabottiglie è nato da zero: il cliente aveva uno spazio complesso da valorizzare — una parete, un climatizzatore già installato e la necessità di unire una cantinetta portavini a una mobile TV in un unico mobile su misura. Abbiamo progettato il design integrando prese elettriche a scomparsa e un sistema di illuminazione LED, per un risultato elegante e perfettamente funzionale, capace di adattarsi agli spazi e agli impianti già esistenti."
+    }
+  },
+  "services": {
     "svcTitle": "I Nostri Servizi",
     "slides": {
       "cta": "Contattaci",
       "slide1": {
         "label": "Falegnameria",
         "title": "Dalla matita\nal\nmontaggio",
-        "body": "Realizziamo mobili su misura di ogni complessità: dal primo schizzo al montaggio, ogni pezzo nasce da un'idea e prende forma con cura artigianale.\n\nIl nostro laboratorio unisce tecniche tradizionali di falegnameria e precisione moderna — ogni incastro lavorato a mano, ogni superficie trattata con la cura che solo i veri artigiani conoscono.",
+        "body": "Realizziamo qualsiasi progetto su misura, dal disegno al montaggio.\n\nUniamo falegnameria tradizionale e precisione moderna: ogni pezzo lavorato a mano, con la cura dei veri artigiani.",
         "imgCaption": "Produzione · Workshop"
       },
       "slide2": {
-        "label": "Materiali",
-        "title": "Materiali\nd'eccellenza",
-        "body": "Utilizziamo solo materiali di alta qualità, tra cui l'olio Rubio Monocoat, che protegge e valorizza il legno con una finitura naturale e duratura.\n\nDal rovere massiccio al noce selezionato a mano, ogni materiale è scelto per il suo carattere e la sua durabilità, affinché ogni pezzo invecchi con eleganza e racconti la propria storia.",
-        "imgCaption": "Materiali · Finitura"
+        "label": "Parquet",
+        "title": "Posa del\nparquet",
+        "body": "Posiamo parquet di ogni complessità e geometria.\n\nLavoriamo con i migliori produttori italiani e con artigiani locali che conosciamo di persona: qualità autentica e carattere del legno.",
+        "imgCaption": "Parquet · Posa"
       },
       "slide3": {
-        "label": "Dettaglio",
-        "title": "La perfezione\nnei dettagli",
-        "body": "Ogni angolo, ogni giunzione racconta la cura che poniamo nel lavoro. La perfezione vive nei dettagli che nessuno nota, ma che tutti percepiscono.\n\nLa vera qualità è invisibile — è la fiducia silenziosa di una porta perfettamente appesa, un cassetto che scorre senza sforzo, una superficie che invita a toccarla.",
-        "imgCaption": "Lavorazione · Dettagli"
+        "label": "Restauro",
+        "title": "Restauro\ndei mobili",
+        "body": "Restauriamo i mobili — restituiamo vita agli oggetti preservandone la storia.\n\nSappiamo lavorare materiali delicati come il teak e le rare essenze esotiche, scegliendo con cura il metodo e la finitura più adatti a ogni superficie.",
+        "imgCaption": "Restauro · Mobili"
       },
       "slide4": {
-        "label": "Lavorazioni",
-        "title": "Ogni lavorazione\nin legno",
-        "body": "Oltre ai mobili, installiamo parquet in legno massello e realizziamo qualsiasi lavoro in legno: rivestimenti, scale, porte e strutture su misura.\n\nChe si tratti di un singolo ripiano su misura o di un allestimento residenziale completo, portiamo la stessa cura e attenzione a ogni progetto, indipendentemente dalla scala.",
-        "imgCaption": "Parquet · Massello"
+        "label": "Boiserie",
+        "title": "Boiserie\ne pannelli",
+        "body": "Realizziamo boiserie — pannelli a parete che danno carattere a tutto l'ambiente.\n\nLavoriamo tessuto e legno, trattiamo a olio e padroneggiamo tinteggiature complesse ed espressive, che esaltano la trama e la profondità del materiale.",
+        "imgCaption": "Boiserie · Pannelli"
       }
-    },
-    "project1": {
-      "label": "Ristrutturazione",
-      "title": "Villa Chianti",
-      "description": "Restauro completo di un casale ottocentesco, che fonde la pietra originale con un'estetica abitativa contemporanea e calda."
-    },
-    "project2": {
-      "label": "Interni",
-      "title": "Appartamento Fiorentino",
-      "description": "Progettazione e allestimento completo di un appartamento storico nel cuore di Firenze, nel rispetto del suo patrimonio neoclassico."
-    },
-    "project3": {
-      "label": "Commerciale",
-      "title": "Studio Creativo",
-      "description": "Design e installazione di uno spazio di lavoro open-plan per uno studio di architettura, con falegnameria su misura e illuminazione integrata."
-    },
-    "project4": {
-      "label": "Ospitalità",
-      "title": "Cantina del Vino",
-      "description": "Trasformazione di una cantina tradizionale in una sala degustazione intima, con terracotta, legno invecchiato e ottone satinato."
-    },
-    "project5": {
-      "label": "Residenziale",
-      "title": "Casa Minimalista",
-      "description": "Una casa di famiglia minimalista sulle colline toscane, dove la materialità misurata e la luce naturale definiscono ogni spazio."
     }
   },
   "contacts": {
@@ -76,7 +65,7 @@
     "footer": {
       "company": "Axis arredi",
       "address": "Italia, Montespertoli (FI), via Chinigiano 10",
-      "phone": "+39 0571 123 456",
+      "phone": "+39 380 262 8180",
       "rights": "© 2024 Axis arredi. Tutti i diritti riservati."
     }
   }

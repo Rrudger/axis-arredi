@@ -4,64 +4,53 @@
     "region": "Toscana",
     "menu": {
       "home": "About us",
-      "projects": "Craftsmanship",
+      "projects": "Services",
+      "portfolio": "Projects",
       "contacts": "Let's talk"
     }
   },
   "projects": {
     "title": "Our Work",
+    "cta": "Get in touch",
+    "project1": {
+      "label": "Kitchen",
+      "title": "Japandi-style kitchen",
+      "description": "A kitchen designed for every centimetre.\n\nIn this apartment we created a fully bespoke kitchen: oak veneer and solid oak, finished with Rubio Monocoat 2C oil. Countertop and wall cladding in Travertino marble. Integrated LED lighting running the full length. Oak parquet flooring matched to the cabinetry. Every element designed and crafted to fit the existing space."
+    },
+    "project2": {
+      "label": "Wine rack\ncabinet",
+      "title": "Wine rack + TV unit",
+      "description": "From drawing to finished product — all made by us.\n\nThis wine cabinet was born from scratch: the client had a complex space to make the most of — a wall, an air-conditioning unit already installed, and the need to combine a wine rack and a TV unit into a single bespoke piece. We designed it with concealed power sockets and an integrated LED lighting system, for an elegant, perfectly functional result that adapts to the existing spaces and installations."
+    }
+  },
+  "services": {
     "svcTitle": "Our Services",
     "slides": {
       "cta": "Get in touch",
       "slide1": {
         "label": "Carpentry",
         "title": "From sketch\nto\ninstallation",
-        "body": "We craft bespoke furniture of any complexity — from the first sketch to final installation, every piece is shaped by precision and artisan care.\n\nOur workshop blends traditional joinery with modern precision — every joint hand-fitted, every surface treated with the care only true craftsmen understand.",
+        "body": "We create any custom project, from design to assembly.\n\nWe blend traditional joinery with modern precision: every piece worked by hand, with the care of true artisans.",
         "imgCaption": "Production · Workshop"
       },
       "slide2": {
-        "label": "Materials",
-        "title": "Excellence\nin materials",
-        "body": "We use only the finest materials, including Rubio Monocoat natural oil — a product that protects and enhances wood with a lasting, authentic finish.\n\nFrom solid oak to hand-selected walnut, each material is chosen for its character and durability, so every piece ages gracefully and tells its own story.",
-        "imgCaption": "Materials · Finish"
+        "label": "Parquet",
+        "title": "Parquet\nlaying",
+        "body": "We lay parquet of any complexity and geometry.\n\nWe work with Italy’s leading producers and with local makers we know personally — for honest quality and the living character of the wood.",
+        "imgCaption": "Parquet · Laying"
       },
       "slide3": {
-        "label": "Craftsmanship",
-        "title": "Perfection\nin every detail",
-        "body": "Every corner, every joint reflects the care we invest in our craft. Perfection lives in the details no one notices — but everyone feels.\n\nTrue quality is invisible — it is the quiet confidence of a perfectly hung door, a drawer that glides without effort, a surface that rewards a closer look.",
-        "imgCaption": "Crafting · Details"
+        "label": "Restoration",
+        "title": "Furniture\nrestoration",
+        "body": "We restore furniture — bringing pieces back to life while preserving their story.\n\nWe are at home with delicate materials such as teak and rare exotic woods, choosing the right method and finish for every surface with care.",
+        "imgCaption": "Restoration · Furniture"
       },
       "slide4": {
-        "label": "Woodwork",
-        "title": "Every craft\nin wood",
-        "body": "Beyond furniture, we install solid hardwood parquet and handle any woodwork — cladding, staircases, doors, and bespoke structural elements.\n\nWhether a single custom shelf or a full residential fit-out, we bring the same rigour and attention to every project, regardless of scale.",
-        "imgCaption": "Parquet · Hardwood"
+        "label": "Boiserie",
+        "title": "Boiserie\nand panelling",
+        "body": "We craft boiserie — wall panelling that gives character to an entire interior.\n\nWe work with fabric and wood, finish with oil, and master rich, expressive staining that brings out the texture and depth of the material.",
+        "imgCaption": "Boiserie · Panelling"
       }
-    },
-    "project1": {
-      "label": "Renovation",
-      "title": "Villa Chianti",
-      "description": "Complete restoration of a 19th-century farmhouse, blending original stonework with a warm, contemporary living aesthetic."
-    },
-    "project2": {
-      "label": "Interior",
-      "title": "Appartamento Fiorentino",
-      "description": "Full interior design and fit-out of a historic apartment in the heart of Florence, respecting its neoclassical heritage."
-    },
-    "project3": {
-      "label": "Commercial",
-      "title": "Studio Creativo",
-      "description": "Design and installation of an open-plan creative workspace for an architecture firm, with custom joinery and integrated lighting."
-    },
-    "project4": {
-      "label": "Hospitality",
-      "title": "Cantina del Vino",
-      "description": "Transformation of a traditional wine cellar into an intimate tasting room, combining terracotta, aged wood and soft brass details."
-    },
-    "project5": {
-      "label": "Residential",
-      "title": "Casa Minimalista",
-      "description": "A minimalist family home in the Tuscan hills, where restrained materiality and natural light define every space."
     }
   },
   "contacts": {
@@ -76,7 +65,7 @@
     "footer": {
       "company": "Axis arredi",
       "address": "Italia, Montespertoli (FI), via Chinigiano 10",
-      "phone": "+39 0571 123 456",
+      "phone": "+39 380 262 8180",
       "rights": "© 2024 Axis arredi. All rights reserved."
     }
   }

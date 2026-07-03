@@ -1,15 +1,23 @@
 "use client";
 
-import { forwardRef, useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+
+// Замер размера контейнера делаем ДО отрисовки (useLayoutEffect), чтобы первый
+// же кадр знал isMobile и не мигал десктопной мозаикой. На сервере layout-эффект
+// не запускается — падаем на useEffect, чтобы не было предупреждения при SSR.
+const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 type Side = "left" | "right" | null;
 
 const CLIP_DURATION = 900;
 
-// Каждая плитка: img — фото из /images/sketch (objectFit:cover, без пустот),
+// Каждая плитка: фото из /images/sketch (objectFit:cover, без пустот),
 // tint — оттенок primary поверх фото, ov — интенсивность этого оттенка
 // (разная по плиткам для вариативности), op — прозрачность самого фото.
+// Имя файла определяется НЕ здесь, а в MasonryGrid по номеру контейнера:
+//   • мобайл  — номер контейнера = имя файла (1 → 1.jpg);
+//   • десктоп — скетчи 0..N-1 перемешиваются и раскладываются случайно.
 const SK = "/images/sketch";
 
 // Процедурный шум (SVG feTurbulence) для эффекта «шероховатой бумаги» поверх
@@ -20,40 +28,56 @@ const NOISE_BG =
   "%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E";
 const COLUMNS_DESKTOP = [
   { flex: 20, items: [
-    { flex: 2.4, tint: "var(--color-mosaic-3)", ov: 0.30, op: 0.88, img: `${SK}/vineA.jpg` },
-    { flex: 1.0, tint: "var(--color-mosaic-1)", ov: 0.42, op: 0.82, img: `${SK}/drawerA.jpg` },
-    { flex: 1.6, tint: "var(--color-mosaic-5)", ov: 0.24, op: 0.92, img: `${SK}/vineAA.jpg` },
+    { flex: 2.4, tint: "var(--color-mosaic-3)", ov: 0.30, op: 0.88 },
+    { flex: 1.0, tint: "var(--color-mosaic-1)", ov: 0.42, op: 0.82 },
+    { flex: 1.6, tint: "var(--color-mosaic-5)", ov: 0.24, op: 0.92 },
   ] },
   { flex: 31, items: [
-    { flex: 1.2, tint: "var(--color-mosaic-4)", ov: 0.28, op: 0.90, img: `${SK}/roomMarmoAA.jpg` },
-    { flex: 2.8, tint: "var(--color-mosaic-2)", ov: 0.36, op: 0.86, img: `${SK}/bedAA.jpg` },
+    { flex: 1.2, tint: "var(--color-mosaic-4)", ov: 0.28, op: 0.90 },
+    { flex: 2.8, tint: "var(--color-mosaic-2)", ov: 0.36, op: 0.86 },
   ] },
   { flex: 17, items: [
-    { flex: 0.9, tint: "var(--color-mosaic-5)", ov: 0.22, op: 0.92, img: `${SK}/stairsS.jpg` },
-    { flex: 1.8, tint: "var(--color-mosaic-2)", ov: 0.34, op: 0.86, img: `${SK}/vine2A.jpg` },
-    { flex: 1.3, tint: "var(--color-mosaic-1)", ov: 0.40, op: 0.82, img: `${SK}/bedS.jpg` },
+    { flex: 0.9, tint: "var(--color-mosaic-5)", ov: 0.22, op: 0.92 },
+    { flex: 1.8, tint: "var(--color-mosaic-2)", ov: 0.34, op: 0.86 },
+    { flex: 1.3, tint: "var(--color-mosaic-1)", ov: 0.40, op: 0.82 },
   ] },
   { flex: 32, items: [
-    { flex: 3.2, tint: "var(--color-mosaic-3)", ov: 0.30, op: 0.88, img: `${SK}/roomMarmoA.jpg` },
-    { flex: 0.8, tint: "var(--color-mosaic-4)", ov: 0.40, op: 0.84, img: `${SK}/drawerS.jpg` },
+    { flex: 3.2, tint: "var(--color-mosaic-3)", ov: 0.30, op: 0.88 },
+    { flex: 0.8, tint: "var(--color-mosaic-4)", ov: 0.40, op: 0.84 },
   ] },
 ];
 
 const COLUMNS_MOBILE = [
   { flex: 38, items: [
-    { flex: 2.2, tint: "var(--color-mosaic-3)", ov: 0.30, op: 0.88, img: `${SK}/stairsA.jpg` },
-    { flex: 1.8, tint: "var(--color-mosaic-1)", ov: 0.40, op: 0.82, img: `${SK}/drawerA.jpg` },
+    { flex: 2.2, tint: "var(--color-mosaic-3)", ov: 0.30, op: 0.88 },
+    { flex: 1.8, tint: "var(--color-mosaic-1)", ov: 0.40, op: 0.82 },
   ] },
   { flex: 62, items: [
-    { flex: 2.0, tint: "var(--color-mosaic-4)", ov: 0.28, op: 0.90, img: `${SK}/roomMarmoAA.jpg` },
-    { flex: 0.5, tint: "var(--color-mosaic-5)", ov: 0.24, op: 0.92, img: `${SK}/bedA.jpg` },
-    { flex: 1.5, tint: "var(--color-mosaic-3)", ov: 0.32, op: 0.86, img: `${SK}/vineAA.jpg`, pos: "30% 50%" },
+    { flex: 2.0, tint: "var(--color-mosaic-4)", ov: 0.28, op: 0.90 },
+    { flex: 0.5, tint: "var(--color-mosaic-5)", ov: 0.24, op: 0.92 },
+    { flex: 1.5, tint: "var(--color-mosaic-3)", ov: 0.32, op: 0.86, pos: "30% 50%" },
   ] },
 ];
 
 function MasonryGrid({ isMobile }: { isMobile: boolean }) {
   const columns = isMobile ? COLUMNS_MOBILE : COLUMNS_DESKTOP;
-  let n = 0; // сквозной порядковый номер плитки
+  const total = columns.reduce((s, c) => s + c.items.length, 0);
+
+  // Десктоп: скетчи 0..total-1 перемешиваются один раз после монтирования
+  // (чтобы не ловить рассинхрон гидрации) и раскладываются по контейнерам в
+  // случайном порядке. До готовности перестановки — исходный порядок 0..N-1.
+  const [shuffle, setShuffle] = useState<number[] | null>(null);
+  useEffect(() => {
+    if (isMobile) { setShuffle(null); return; }
+    const arr = Array.from({ length: total }, (_, i) => i);
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    setShuffle(arr);
+  }, [isMobile, total]);
+
+  let n = 0; // сквозной порядковый номер плитки (1..total)
   return (
     <div style={{
       position: "absolute", inset: 0,
@@ -71,6 +95,11 @@ function MasonryGrid({ isMobile }: { isMobile: boolean }) {
         }}>
           {col.items.map((item, ii) => {
             const num = ++n;
+            // Мобайл: номер контейнера = имя файла (1 → 1.jpg).
+            // Десктоп: случайный скетч из перемешанного набора 0..total-1.
+            const src = isMobile
+              ? `${SK}/${num}.jpg`
+              : `${SK}/${(shuffle ?? [])[num - 1] ?? (num - 1)}.jpg`;
             return (
               <div key={ii} style={{
                 flex: item.flex,
@@ -81,7 +110,7 @@ function MasonryGrid({ isMobile }: { isMobile: boolean }) {
               }}>
                 {/* Фото заполняет плитку целиком (cover), без пустого места */}
                 <img
-                  src={item.img}
+                  src={src}
                   alt=""
                   style={{
                     position: "absolute", inset: 0,
@@ -214,7 +243,7 @@ const DiagonalBlock = forwardRef<HTMLDivElement>((_, ref) => {
     }
   };
 
-  useEffect(() => {
+  useIsoLayoutEffect(() => {
     // Берём РЕАЛЬНЫЙ размер контейнера (clientWidth/Height), а не window.inner*:
     // на мобильных 100vh (h-screen) может отличаться от innerHeight, из-за чего
     // диагональ фото не совпадала с диагональю клипа и появлялись пустые углы.
@@ -258,10 +287,6 @@ const DiagonalBlock = forwardRef<HTMLDivElement>((_, ref) => {
   // Угол наклона фото в закрытом состоянии — диагональ фото ложится на диагональ экрана.
   const closedRot = 45 - angle;
 
-  // Доп. наклон плашки влево в открытом состоянии, чтобы точно совпасть с бутылкой
-  // (бутылка лежит чуть круче диагонали фото). Положит. число = сильнее влево.
-  const OPEN_TILT_EXTRA = 24;
-
   // Запас на поворот ОДИНАКОВЫЙ по осям, поэтому коробка сохраняет пропорцию фото
   // (~0.71) и objectFit:cover показывает фото целиком, без обрезки и без лишнего зума.
   // Минимум ≈1.0 (точное покрытие экрана); чуть больше — слабина под подстройку кадра.
@@ -269,6 +294,13 @@ const DiagonalBlock = forwardRef<HTMLDivElement>((_, ref) => {
   // Точная подстройка кадра (доля размера коробки). 0 = фото по центру.
   const SHIFT_X = 0.04; // + вправо (бутылка на диагонали)
   const SHIFT_Y = 0; // + вниз
+  // Подгонка скетча под линии решётки на фото (само фото НЕ трогаем). Скетч
+  // нарисован в другом масштабе/кадре, поэтому у него свои сдвиг и масштаб —
+  // так линии полок продолжают линии фото через диагональ. Значения подобраны
+  // наложением скетча на фото для мобильного кадра ~402×874.
+  const SK_SHIFT_X = 0.17;   // доля коробки, + вправо
+  const SK_SHIFT_Y = 0.16;   // доля коробки, + вниз
+  const SK_SCALE   = 1.1;
 
   // Размер коробки <img> (в px), при котором повёрнутый на closedRot прямоугольник
   // полностью покрывает экран при scale(1). Запас на поворот — в размере коробки,
@@ -366,10 +398,64 @@ const DiagonalBlock = forwardRef<HTMLDivElement>((_, ref) => {
           transition: "clip-path 0.85s cubic-bezier(0.77,0,0.18,1)",
           zIndex: leftZ,
         }}>
-          <MasonryGrid isMobile={isMobile} />
+          {/* Пока размер не измерен (windowW === 0) — не рисуем ничего, иначе
+              на первом кадре мелькнёт десктопная мозаика до переключения на скетч. */}
+          {windowW === 0 ? null : isMobile ? (
+            // Мобайл: вместо мозаики — скетч того же винного шкафа, что на фото
+            // снизу. Тот же диагональный transform (coverBox / closedRot / SHIFT),
+            // что и у фото, поэтому линии решётки скетча продолжают линии фото
+            // через диагональ (у vineCrop и main/1.jpg почти равные пропорции ~0.71).
+            <div style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              overflow: "hidden",
+              pointerEvents: "none",
+              // Фон = чисто-белый скетч-бумаги: пустые углы после поворота
+              // скетча сливаются с его белым #fff и не читаются как пустота.
+              background: "var(--color-sketch-paper)",
+            }}>
+              <img
+                src={`${SK}/vineCrop.jpg`}
+                alt=""
+                style={{
+                  flexShrink: 0,
+                  maxWidth: "none",
+                  maxHeight: "none",
+                  width: activeSide === "left" ? `${windowW}px` : `${coverBox.w}px`,
+                  height: activeSide === "left" ? `${windowH}px` : `${coverBox.h}px`,
+                  objectFit: "cover",
+                  objectPosition: "50% 50%",
+                  transformOrigin: "center center",
+                  transform: activeSide === "left"
+                    ? "rotate(0deg)"
+                    : `rotate(${closedRot}deg) translate(${SK_SHIFT_X * 100}%, ${SK_SHIFT_Y * 100}%) scale(${SK_SCALE})`,
+                  transition:
+                    "transform 0.85s cubic-bezier(0.77,0,0.18,1), width 0.85s cubic-bezier(0.77,0,0.18,1), height 0.85s cubic-bezier(0.77,0,0.18,1)",
+                }}
+              />
+              {/* Зернистость «шероховатой бумаги». На десктопе плитки цветные и
+                  работает overlay; здесь фон белый, а overlay поверх белого не
+                  виден — поэтому multiply (тёмные крапинки шума на бумаге). */}
+              <div style={{
+                position: "absolute", inset: 0,
+                backgroundImage: `url("${NOISE_BG}")`,
+                backgroundSize: "140px 140px",
+                mixBlendMode: "multiply",
+                opacity: 0.3,
+                pointerEvents: "none",
+              }} />
+            </div>
+          ) : (
+            <MasonryGrid isMobile={false} />
+          )}
           <div className="absolute inset-0 flex items-start justify-start pointer-events-none">
             <div className="mt-12 ml-12 t-label" style={{
-              color: "var(--color-overlay-10)",
+              // На мобиле верхний треугольник — светлый скетч, поэтому берём
+              // приглушённый тёмный токен; на десктопе фон тёмный — светлый overlay.
+              color: isMobile ? "var(--color-text-muted)" : "var(--color-overlay-10)",
               letterSpacing: "0.3em",
             }}>Progetto</div>
           </div>
@@ -463,22 +549,15 @@ const DiagonalBlock = forwardRef<HTMLDivElement>((_, ref) => {
             </div>
 
             {/* Плашка.
-                Бар повёрнут на -angle. Здесь компенсируем его поворот:
-                - закрыто (activeSide === null): +angle → плашка горизонтальна;
-                - открыто: по умолчанию остаётся горизонтальной (rotate(angle)).
-                  Наклон под бутылку (closedRot = 45 - angle, компенсация бара
-                  closedRot + angle) включаем ТОЛЬКО в мобильной версии и ТОЛЬКО
-                  при разворачивании НИЖНЕГО контейнера (activeSide === "right",
-                  одно цветное фото). На десктопе плашка не наклоняется никогда,
-                  на мобиле при разворачивании верхнего (left) — тоже не двигается.
-                Переход анимируется в обе стороны. */}
+                Бар повёрнут на -angle. Здесь компенсируем его поворот на +angle,
+                чтобы плашка всегда была горизонтальна — и в закрытом состоянии,
+                и при раскрытии любого контейнера. Наклона под бутылку больше нет. */}
             <div style={{
               flexShrink: 0,
-              transform: rotated
-                ? (isMobile && activeSide === "right"
-                    ? `rotate(${closedRot + angle - OPEN_TILT_EXTRA}deg)`
-                    : `rotate(${angle}deg)`)
-                : undefined,
+              // Плашка всегда горизонтальна (компенсируем поворот бара на -angle),
+              // и при раскрытии контейнеров тоже не наклоняется — ни на десктопе,
+              // ни на мобиле.
+              transform: rotated ? `rotate(${angle}deg)` : undefined,
               transition: "transform 1.1s cubic-bezier(0.76,0,0.24,1)",
             }}>
               <div ref={plashkaRef} style={{

@@ -46,6 +46,11 @@
      читается везде и не «звенит» на креме, как чистый #000. */
   --color-ink:             #26221E;
 
+  /* SKETCH-PAPER — чисто-белый фон скетч-ассетов (vineCrop и т.п.). Общий
+     для всех тем: сам скетч — фикс. JPG с белым #fff. Используется как фон
+     контейнера со скетчем, чтобы пустые углы после поворота сливались с ним. */
+  --color-sketch-paper:    #ffffff;
+
   /* PRIMARY / NEUTRAL / BASE / MOSAIC / LEGACY — задаются активной
      темой из ./themes/ (см. @import выше). */
 
@@ -74,6 +79,7 @@
    t-label     — uppercase-лейблы, кнопки, счётчики (Cinzel)
    t-caption   — мелкие метки, номера плиток (Cinzel)
    t-body      — основной текст абзацев (Lora)
+   t-body-compact — тот же текст, но 16px и на десктопе (экран проектов) (Lora)
    t-body-sm   — уменьшенный текст (Lora)
    t-script    — рукописный слоган (Italianno)
 ═══════════════════════════════════════════════════════════════ */
@@ -81,7 +87,7 @@
   font-family: var(--font-sans);
   font-weight: 400;
 }
-.t-body, .t-body-sm { font-family: var(--font-body); font-weight: 400; color: var(--color-text-primary); }
+.t-body, .t-body-compact, .t-body-sm { font-family: var(--font-body); font-weight: 400; color: var(--color-text-primary); }
 .t-script           { font-family: var(--font-script); font-weight: 400; }
 
 .t-hero     { font-size: 28px; line-height: 1.08; letter-spacing: 0.18em; text-transform: uppercase; }
@@ -90,7 +96,8 @@
 .t-subtitle { font-size: 14px; line-height: 1.50; letter-spacing: 0.12em; }
 .t-label    { font-size: 10px; line-height: 1.40; letter-spacing: 0.24em; text-transform: uppercase; }
 .t-caption  { font-size:  8px; line-height: 1.40; letter-spacing: 0.12em; }
-.t-body     { font-size: 13px; line-height: 1.75; letter-spacing: 0.04em; }
+.t-body        { font-size: 16px; line-height: 1.75; letter-spacing: 0.04em; }
+.t-body-compact { font-size: 16px; line-height: 1.75; letter-spacing: 0.04em; }
 .t-body-sm  { font-size: 11px; line-height: 1.70; letter-spacing: 0.03em; }
 .t-script   { font-size: 28px; line-height: 1.15; letter-spacing: 0.02em; }
 
@@ -101,7 +108,8 @@
   .t-subtitle { font-size: 16px; }
   .t-label    { font-size: 12px; }
   .t-caption  { font-size:  9px; }
-  .t-body     { font-size: 14px; line-height: 1.85; }
+  .t-body     { font-size: 18px; line-height: 1.85; }
+  .t-body-compact { font-size: 16px; line-height: 1.85; }
   .t-body-sm  { font-size: 12px; }
   .t-script   { font-size: 44px; }
 }
@@ -113,7 +121,7 @@
   font-weight: 400;
   letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: var(--color-text-primary);
+  color: var(--color-text-secondary);
 }
 @media (min-width: 768px) {
   .contacts-title { font-size: clamp(26px, 2.8vw, 42px); }
@@ -139,7 +147,7 @@
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--color-primary);
-  margin-bottom: 7px;
+  margin-bottom: 14px;
 }
 @media (min-width: 768px) {
   .contacts-label { font-size: 13px; }
@@ -185,62 +193,76 @@
   background: color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 
-.contacts-btn-write {
+/* ── CTA-кнопка ───────────────────────────────────────────────
+   Один элемент (см. components/ui/cta-button.tsx) с настраиваемым
+   размером (проп width) и фоном (variant: 'dark' | 'light').
+   Поведение у обоих фонов идентичное: при наведении меняются местами
+   фон и цвет текста, тёмный кант неизменен. Никакого движения, теней,
+   блюра — только смена цветов. Тёмный вариант = светлый с переставленными
+   состояниями (по умолчанию залит, на ховере становится «светлой» кнопкой). */
+.cta-button,
+.contacts-btn-send {
+  /* Светлая «плёнка»-блик матового стекла — диагональный полупрозрачный
+     слой поверх заливки. Виден на любом фоне, не зависит от того, что под
+     кнопкой. Накладывается только на залитые состояния. */
+  --cta-frost: linear-gradient(140deg,
+    color-mix(in srgb, var(--color-white) 24%, transparent) 0%,
+    color-mix(in srgb, var(--color-white) 7%, transparent) 38%,
+    transparent 60%,
+    color-mix(in srgb, var(--color-white) 14%, transparent) 100%);
+  box-sizing: border-box;
   font-family: 'Cinzel', serif;
-  font-size: 12px;
-  font-weight: 400;
+  font-weight: 600;
   letter-spacing: 0.32em;
   text-transform: uppercase;
-  color: var(--color-white);
-  background: var(--color-primary);
-  border: 1.5px solid var(--color-primary);
-  padding: 16px 48px;
+  /* Залитое состояние — тёмный кант; «светлое» состояние — золотой (как в
+     виньетках, var(--color-accent1)). */
+  border: 2px solid var(--color-primary);
   cursor: pointer;
-  box-shadow: 0 4px 18px color-mix(in srgb, var(--color-primary-darker) 32%, transparent), inset 0 1px 0 rgba(255,255,255,0.08);
-  transition: background 0.3s ease, color 0.3s ease, transform 0.25s ease, box-shadow 0.3s ease;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   -webkit-tap-highlight-color: transparent;
+  /* Матовое стекло: блюр/насыщение фона (заметно поверх изображений) +
+     полупрозрачная заливка с плёнкой-бликом (заметно на любом фоне). */
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+  /* Тёмный фон (по умолчанию) */
+  background: var(--cta-frost), color-mix(in srgb, var(--color-primary) 78%, transparent);
+  color: var(--color-primary-bg);
 }
+.cta-button { font-size: 12px; padding: 16px 48px; }
+.contacts-btn-send { font-size: 12px; padding: 15px 44px; }
+
 @media (hover: hover) {
-  .contacts-btn-write:hover {
-    background: var(--color-primary);
-    color: var(--color-white);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px color-mix(in srgb, var(--color-primary-darker) 18%, transparent);
+  .cta-button:hover,
+  .contacts-btn-send:hover {
+    /* становится «светлой» кнопкой — золотой кант */
+    background: transparent;
+    color: var(--color-primary);
+    border-color: var(--color-accent1);
   }
 }
-.contacts-btn-write:active {
-  background: var(--color-primary);
-  color: var(--color-white);
-  transform: translateY(0);
-  box-shadow: none;
+
+/* Светлый фон — те же правила, состояния в обратную сторону. */
+.cta-button--light {
+  background: transparent;
+  color: var(--color-primary);
+  border-color: var(--color-accent1);
+}
+@media (hover: hover) {
+  .cta-button--light:hover {
+    background: var(--cta-frost), color-mix(in srgb, var(--color-primary) 78%, transparent);
+    color: var(--color-primary-bg);
+    border-color: var(--color-primary);
+  }
 }
 
-.contacts-btn-send {
-  font-family: 'Cinzel', serif;
-  font-size: 13px;
-  font-weight: 400;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: var(--color-white);
-  background: var(--color-primary);
-  border: 2.5px solid var(--color-primary);
-  padding: 15px 44px;
-  cursor: pointer;
-  box-shadow: 0 4px 18px color-mix(in srgb, var(--color-primary-darker) 28%, transparent), inset 0 1px 0 rgba(255,255,255,0.07);
-  transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
-}
-.contacts-btn-send:hover {
-  background: var(--color-primary-dark);
-  border-color: var(--color-primary-dark);
-  box-shadow: 0 6px 22px color-mix(in srgb, var(--color-primary-darker) 38%, transparent);
-  transform: translateY(-1px);
-}
-.contacts-btn-send:active {
-  transform: translateY(0);
-  box-shadow: none;
-}
 @media (min-width: 768px) {
   .contacts-btn-send { padding: 12px 72px; }
+}
+/* Десктоп — текст жирнее для лучшей читаемости */
+@media (min-width: 1023px) {
+  .cta-button,
+  .contacts-btn-send { font-weight: 700; }
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -248,7 +270,24 @@
    только через var() в inline-стилях.
 ───────────────────────────────────────────────────────────── */
 :root {
-  /* Типографика */
+  /* Меню (sidebar). Активность отмечена двумя признаками: усиленным
+     цветом пункта и боковой чертой-указателем (правый бордер активного
+     виден, у неактивных он прозрачный — desktop). На мобиле боковой
+     черты нет — активный помечен точкой-индикатором.
+     Неактив: мобайл — пункты поверх тёмного «стекла»
+     (--color-plashka-bg), светлый тон; десктоп — плашка прозрачная,
+     поверх контента, тёмный тон (переключает медиазапрос). Контактная
+     секция тёмная → отдельный «-light» тон неактива. */
+  --color-menu-active:         var(--color-overlay-88);
+  --color-menu-inactive:       var(--color-overlay-60);
+  --color-menu-inactive-light: var(--color-overlay-60);
+
+  /* Типографика.
+     ПРАВИЛО: --color-text-primary (= ink, мягкий чёрный) применяется
+     ТОЛЬКО к основному тексту (абзацы t-body / t-body-sm, вводимый
+     текст форм). Заголовки, меню, лейблы, иконки и прочие элементы
+     чёрным НЕ красятся — для них используется --color-text-secondary
+     (= primary, таупе) или конкретные primary-* тона. */
   --color-text-primary:    var(--color-ink);
   --color-text-secondary:  var(--color-primary);
   --color-text-muted:      var(--color-primary-light);
@@ -270,12 +309,17 @@
   /* Стеклянная плашка на тёмном фоне — самый тёмный тон мозаики */
   --color-plashka-bg:      color-mix(in srgb, var(--color-mosaic-1) 72%, transparent);
 
+  /* Плашка мобильного меню — отдельный, чуть более светлый тон стекла
+     (на десктопе меню прозрачное, поэтому токен влияет только на мобайл). */
+  --color-menu-plate:      color-mix(in srgb, var(--color-mosaic-1) 58%, transparent);
+
   /* Тень текста */
   --color-shadow:          color-mix(in srgb, var(--color-mosaic-1) 55%, transparent);
 
   /* Overlay — фон (primary-bg) на разных уровнях прозрачности.
      Используется для рамок, линий и SVG-штрихов на тёмных блоках. */
   --color-overlay-88:      color-mix(in srgb, var(--color-primary-bg) 88%, transparent);
+  --color-overlay-60:      color-mix(in srgb, var(--color-primary-bg) 60%, transparent);
   --color-overlay-42:      color-mix(in srgb, var(--color-primary-bg) 42%, transparent);
   --color-overlay-30:      color-mix(in srgb, var(--color-primary-bg) 30%, transparent);
   --color-overlay-28:      color-mix(in srgb, var(--color-primary-bg) 28%, transparent);
@@ -287,4 +331,24 @@
   --color-overlay-08:      color-mix(in srgb, var(--color-primary-bg) 8%, transparent);
   --color-overlay-06:      color-mix(in srgb, var(--color-primary-bg) 6%, transparent);
   --color-overlay-05:      color-mix(in srgb, var(--color-primary-bg) 5%, transparent);
+}
+
+/* Десктоп: плашка меню прозрачная, поверх контента — пункты тёмные. */
+@media (min-width: 1023px) {
+  :root {
+    --color-menu-active:         var(--color-primary-darker);
+    --color-menu-inactive:       var(--color-primary);
+    --color-menu-inactive-light: var(--color-primary);
+  }
+
+  /* Контактный (4-й) экран: меню целиком лежит на тёмном таупе-
+     треугольнике (bg-primary), поэтому тёмные тона сливаются с фоном.
+     Модификатор вешается на контейнер меню только на этой секции —
+     светлый набор, читаемый по таупе. Внутри медиазапроса → мобильные
+     версии и остальные экраны не затрагиваются. */
+  .menu-on-dark {
+    --color-menu-active:         var(--color-overlay-88);
+    --color-menu-inactive:       var(--color-overlay-60);
+    --color-menu-inactive-light: var(--color-overlay-60);
+  }
 }

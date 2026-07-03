@@ -3,6 +3,9 @@
 import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
+import CtaButton from '@/components/ui/cta-button';
+import Flourish from '@/components/ui/flourish';
+
 
 const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
   const t = useTranslations('contacts');
@@ -15,6 +18,9 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
   const [isOpen,    setIsOpen]    = useState(false);
   const [isPeeking, setIsPeeking] = useState(false);
   const [mounted,   setMounted]   = useState(false);
+  const [waOpen,    setWaOpen]    = useState(false);
+  const [copied,    setCopied]    = useState(false);
+  const waRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     const update = () => { setWindowW(window.innerWidth); setWindowH(window.innerHeight); };
@@ -36,6 +42,36 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
     // TODO: submission logic
   };
 
+  // Телефон для WhatsApp: тот же номер, что в футере, без пробелов и «+».
+  const phone   = t('footer.phone');
+  const waLink  = `https://wa.me/${phone.replace(/\D/g, '')}`;
+
+  // Мобайл — открываем приложение WhatsApp; десктоп — показываем плашку с
+  // номером, откуда его можно скопировать.
+  const handleWhatsApp = () => {
+    if (isMobile) {
+      window.open(waLink, '_blank', 'noopener,noreferrer');
+    } else {
+      setWaOpen(v => !v);
+    }
+  };
+
+  const copyPhone = () => {
+    navigator.clipboard?.writeText(phone);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+
+  // Клик вне плашки — закрываем её.
+  useEffect(() => {
+    if (!waOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (waRef.current && !waRef.current.contains(e.target as Node)) setWaOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [waOpen]);
+
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const logoRef = useRef<HTMLDivElement>(null);
   const [logoClipPath, setLogoClipPath] = useState<string | undefined>(undefined);
@@ -44,6 +80,32 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
   const addressRef = useRef<HTMLDivElement>(null);
   const [titleY, setTitleY] = useState<number | null>(null);
   const [addressTranslateY, setAddressTranslateY] = useState<number | null>(null);
+  // Ширина заголовка — виньетка под ним рисуется в половину этой ширины.
+  const [titleW, setTitleW] = useState(0);
+
+  useEffect(() => {
+    const measure = () => {
+      const el = titleRef.current;
+      if (!el) return;
+      // Меряем именно текст, а не растянутый по контейнеру flex-бокс заголовка.
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      // getBoundingClientRect даёт layout-ширину (по advance глифов): в неё
+      // входит интервал letter-spacing после последней буквы и боковые засечки.
+      // Вычитаем их, чтобы виньетка совпала с видимым текстом, а не с боксом.
+      const cs = getComputedStyle(el);
+      const trailing = parseFloat(cs.letterSpacing) || 0;
+      const fontSize = parseFloat(cs.fontSize) || 0;
+      const inset = trailing + fontSize * 0.12; // ≈ боковые засечки Cinzel
+      setTitleW(Math.max(0, range.getBoundingClientRect().width - inset));
+    };
+    requestAnimationFrame(measure);
+    document.fonts?.ready.then(measure);
+    // Размер заголовка анимируется (~0.85s при разворачивании формы) —
+    // перемеряем после перехода, чтобы виньетка совпала с итоговой шириной.
+    const afterTransition = setTimeout(measure, 900);
+    return () => clearTimeout(afterTransition);
+  }, [windowW, windowH, mounted, isOpen]);
 
   useEffect(() => {
     const update = () => {
@@ -66,7 +128,42 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
       pts += `, 0 100%`;
       setLogoClipPath(`polygon(${pts})`);
     };
-    requestAnimationFrame(update);
+    // Позиция логотипа плавно едет во время анимаций формы (padding-top ~0.85s
+    // при сворачивании/разворачивании). Разовый пересчёт поймал бы промежуточную
+    // позицию и срезал логотип. Поэтому крутим короткий rAF-цикл (~950мс —
+    // длительность перехода), пересчитывая клип каждый кадр, пока layout едет.
+    let loopId = 0;
+    const start = performance.now();
+    const loop = (now: number) => {
+      update();
+      if (now - start < 950) loopId = requestAnimationFrame(loop);
+    };
+    loopId = requestAnimationFrame(loop);
+    // Клип считается по позиции логотипа относительно вьюпорта. Сайт —
+    // постраничный скролл: если он загружен на 1-м экране, логотип 4-го
+    // экрана далеко внизу за вьюпортом (r.top огромный) → клип считается по
+    // «нижней» позиции и срезает логотип. При долистывании до 4-го экрана
+    // позиция меняется, поэтому пересчитываем на скролле (пока секция видна)
+    // и когда логотип попадает во вьюпорт. rAF-троттлинг, чтобы не молотить.
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => { update(); ticking = false; });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    document.fonts?.ready.then(update);
+    // Логотип может сдвинуться и от собственного ресайза (height в vh).
+    const ro = new ResizeObserver(update);
+    // Пересчёт в момент появления/исчезновения логотипа во вьюпорте.
+    const io = new IntersectionObserver(update, { threshold: [0, 0.5, 1] });
+    if (logoRef.current) { ro.observe(logoRef.current); io.observe(logoRef.current); }
+    return () => {
+      cancelAnimationFrame(loopId);
+      window.removeEventListener('scroll', onScroll);
+      ro.disconnect();
+      io.disconnect();
+    };
   }, [windowW, windowH, isMobile, isOpen]);
 
   useEffect(() => {
@@ -197,14 +294,13 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
               flexDirection: 'column',
               alignItems: 'flex-start',
               gap: '20px',
-              opacity: 0.55,
               paddingTop: '8px',
               pointerEvents: 'auto',
             }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <span className="t-label" style={{
-                  letterSpacing: '0.26em',
-                  color: 'var(--color-text-primary)',
+                <span className="t-title uppercase" style={{
+                  letterSpacing: '0.16em',
+                  color: 'var(--color-text-secondary)',
                   whiteSpace: 'nowrap',
                 }}>
                   {t('footer.company')}
@@ -237,14 +333,68 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
               </div>
 
               <div style={{ display: 'flex', gap: '18px' }}>
+                <div ref={waRef} style={{ position: 'relative', display: 'inline-flex' }}>
+                  <svg onClick={handleWhatsApp} width={25} height={25} viewBox="0 0 24 24" fill="none" style={{ cursor: 'pointer', opacity: waOpen ? 1 : 0.75 }}>
+                    <path d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.37 0 0 5.37 0 12c0 2.11.55 4.17 1.6 5.98L0 24l6.18-1.57A11.95 11.95 0 0 0 12 24c6.63 0 12-5.37 12-12 0-3.2-1.25-6.22-3.48-8.52zM12 22c-1.85 0-3.66-.5-5.24-1.44l-.38-.22-3.67.93.97-3.56-.25-.38A9.94 9.94 0 0 1 2 12C2 6.48 6.48 2 12 2c2.67 0 5.18 1.04 7.07 2.93A9.93 9.93 0 0 1 22 12c0 5.52-4.48 10-10 10zm5.47-7.4c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.47-.89-.79-1.49-1.76-1.66-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.61-.92-2.2-.24-.58-.48-.5-.67-.51H7.6c-.2 0-.52.07-.79.37C6.54 8.6 5.8 9.3 5.8 10.73c0 1.43 1.04 2.81 1.19 3.01.15.2 2.05 3.13 4.97 4.39.7.3 1.24.48 1.66.61.7.22 1.33.19 1.83.12.56-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35z" fill="var(--color-text-secondary)" />
+                  </svg>
+
+                  {/* Плашка с номером (десктоп) — клик копирует в буфер обмена */}
+                  {waOpen && (
+                    <div
+                      onClick={copyPhone}
+                      style={{
+                        position: 'absolute',
+                        bottom: 'calc(100% + 12px)',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '10px 14px',
+                        whiteSpace: 'nowrap',
+                        cursor: 'pointer',
+                        background: 'var(--color-primary-bg)',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: '8px',
+                        boxShadow: '0 8px 24px var(--color-shadow)',
+                        zIndex: 50,
+                        animation: 'wa-pop-in 0.2s ease',
+                      }}
+                    >
+                      <span className="t-subtitle" style={{ letterSpacing: '0.06em', color: 'var(--color-text-primary)' }}>
+                        {phone}
+                      </span>
+                      {copied ? (
+                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                          <path d="M20 6L9 17l-5-5" stroke="var(--color-success)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      ) : (
+                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" style={{ opacity: 0.7 }}>
+                          <rect x="9" y="9" width="11" height="11" rx="2" stroke="var(--color-text-secondary)" strokeWidth="1.8" />
+                          <path d="M5 15V5a2 2 0 0 1 2-2h10" stroke="var(--color-text-secondary)" strokeWidth="1.8" strokeLinecap="round" />
+                        </svg>
+                      )}
+                      {/* Хвостик плашки */}
+                      <span style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: '50%',
+                        transform: 'translateX(-50%) rotate(45deg)',
+                        marginTop: '-5px',
+                        width: '9px',
+                        height: '9px',
+                        background: 'var(--color-primary-bg)',
+                        borderRight: '1px solid var(--color-border)',
+                        borderBottom: '1px solid var(--color-border)',
+                      }} />
+                    </div>
+                  )}
+                </div>
                 <svg width={25} height={25} viewBox="0 0 24 24" fill="none" style={{ cursor: 'pointer', opacity: 0.75 }}>
-                  <path d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.37 0 0 5.37 0 12c0 2.11.55 4.17 1.6 5.98L0 24l6.18-1.57A11.95 11.95 0 0 0 12 24c6.63 0 12-5.37 12-12 0-3.2-1.25-6.22-3.48-8.52zM12 22c-1.85 0-3.66-.5-5.24-1.44l-.38-.22-3.67.93.97-3.56-.25-.38A9.94 9.94 0 0 1 2 12C2 6.48 6.48 2 12 2c2.67 0 5.18 1.04 7.07 2.93A9.93 9.93 0 0 1 22 12c0 5.52-4.48 10-10 10zm5.47-7.4c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.47-.89-.79-1.49-1.76-1.66-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.61-.92-2.2-.24-.58-.48-.5-.67-.51H7.6c-.2 0-.52.07-.79.37C6.54 8.6 5.8 9.3 5.8 10.73c0 1.43 1.04 2.81 1.19 3.01.15.2 2.05 3.13 4.97 4.39.7.3 1.24.48 1.66.61.7.22 1.33.19 1.83.12.56-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35z" fill="var(--color-text-primary)" />
+                  <path d="M24 12c0-6.627-5.373-12-12-12S0 5.373 0 12c0 5.99 4.388 10.954 10.125 11.854V15.47H7.078V12h3.047V9.356c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874V12h3.328l-.532 3.469h-2.796v8.385C19.612 22.954 24 17.99 24 12z" fill="var(--color-text-secondary)" />
                 </svg>
                 <svg width={25} height={25} viewBox="0 0 24 24" fill="none" style={{ cursor: 'pointer', opacity: 0.75 }}>
-                  <path d="M24 12c0-6.627-5.373-12-12-12S0 5.373 0 12c0 5.99 4.388 10.954 10.125 11.854V15.47H7.078V12h3.047V9.356c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874V12h3.328l-.532 3.469h-2.796v8.385C19.612 22.954 24 17.99 24 12z" fill="var(--color-text-primary)" />
-                </svg>
-                <svg width={25} height={25} viewBox="0 0 24 24" fill="none" style={{ cursor: 'pointer', opacity: 0.75 }}>
-                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z" fill="var(--color-text-primary)" />
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z" fill="var(--color-text-secondary)" />
                 </svg>
               </div>
             </div>
@@ -282,9 +432,13 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
               {t('title')}
             </span>
 
-            <div style={{ width: '52px', height: '2px', background: 'var(--color-border-strong)', margin: '22px 0 26px' }} />
+            <div style={{ margin: '16px 0 24px' }}>
+              {titleW > 0 && (
+                <Flourish w={titleW} curlW={Math.min(56, titleW)} color={isOpen ? 'var(--color-accent1)' : 'var(--color-primary)'} />
+              )}
+            </div>
 
-            <span className="contacts-subtitle" style={{ marginBottom: '36px' }}>
+            <span className="contacts-subtitle" style={{ marginBottom: '40px' }}>
               {t('subtitle')}
             </span>
 
@@ -292,7 +446,7 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
             <div style={{
               display: 'flex',
               gap: '32px',
-              marginBottom: isMobile && !isOpen ? '0' : '30px',
+              marginBottom: isMobile && !isOpen ? '0' : '24px',
               maxHeight: isMobile && !isOpen ? '0px' : '120px',
               opacity: isMobile && !isOpen ? 0 : 1,
               overflow: 'hidden',
@@ -317,7 +471,7 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
               display: 'flex',
               ...(isMobile ? { flex: 1 } : {}),
               flexDirection: 'column',
-              marginBottom: isMobile && !isOpen ? '0' : '57px',
+              marginBottom: isMobile && !isOpen ? '0' : '40px',
               maxHeight: isMobile && !isOpen ? '0px' : '600px',
               opacity: isMobile && !isOpen ? 0 : 1,
               overflow: 'hidden',
@@ -349,18 +503,23 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
                 alignSelf: isMobile && !isOpen ? 'flex-start' : undefined,
                 flex: isMobile && !isOpen ? 1 : undefined,
               }}>
-                <button
-                  type={isMobile && !isOpen ? 'button' : 'submit'}
-                  onClick={isMobile && !isOpen ? () => setIsOpen(true) : undefined}
-                  className={isMobile && !isOpen ? 'contacts-btn-write' : 'contacts-btn-send'}
-                  style={{
-                    marginLeft: isMobile && isOpen ? 'auto' : undefined,
-                    transition: mounted && isMobile ? 'margin-left 0.85s cubic-bezier(0.77,0,0.18,1)' : undefined,
-                    ...(!isMobile && !isSmall ? { width: `calc((min(${isSmallDesktop ? '46vw, 518px' : '51vw, 575px'}) - 32px) / 3)`, textAlign: 'center', padding: '12px 0' } : {}),
-                  }}
-                >
-                  {isMobile && !isOpen ? t('write') : t('send')}
-                </button>
+                {isMobile && !isOpen ? (
+                  <CtaButton type="button" onClick={() => setIsOpen(true)}>
+                    {t('write')}
+                  </CtaButton>
+                ) : (
+                  <button
+                    type="submit"
+                    className="contacts-btn-send"
+                    style={{
+                      marginLeft: isMobile && isOpen ? 'auto' : undefined,
+                      transition: mounted && isMobile ? 'margin-left 0.85s cubic-bezier(0.77,0,0.18,1)' : undefined,
+                      ...(!isMobile && !isSmall ? { width: `calc((min(${isSmallDesktop ? '46vw, 518px' : '51vw, 575px'}) - 32px) / 2)`, textAlign: 'center', padding: '12px 0' } : {}),
+                    }}
+                  >
+                    {t('send')}
+                  </button>
+                )}
 
                 {isMobile && !isOpen && (
                   <>
@@ -424,14 +583,14 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
                       zIndex: 10,
                       animation: mounted ? 'social-icons-in 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.55s both' : undefined,
                     }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{ cursor: 'pointer', opacity: 0.5 }}>
-                        <path d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.37 0 0 5.37 0 12c0 2.11.55 4.17 1.6 5.98L0 24l6.18-1.57A11.95 11.95 0 0 0 12 24c6.63 0 12-5.37 12-12 0-3.2-1.25-6.22-3.48-8.52zM12 22c-1.85 0-3.66-.5-5.24-1.44l-.38-.22-3.67.93.97-3.56-.25-.38A9.94 9.94 0 0 1 2 12C2 6.48 6.48 2 12 2c2.67 0 5.18 1.04 7.07 2.93A9.93 9.93 0 0 1 22 12c0 5.52-4.48 10-10 10zm5.47-7.4c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.47-.89-.79-1.49-1.76-1.66-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.61-.92-2.2-.24-.58-.48-.5-.67-.51H7.6c-.2 0-.52.07-.79.37C6.54 8.6 5.8 9.3 5.8 10.73c0 1.43 1.04 2.81 1.19 3.01.15.2 2.05 3.13 4.97 4.39.7.3 1.24.48 1.66.61.7.22 1.33.19 1.83.12.56-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35z" fill="var(--color-text-primary)" />
+                      <svg onClick={handleWhatsApp} width="22" height="22" viewBox="0 0 24 24" fill="none" style={{ cursor: 'pointer', opacity: 0.5 }}>
+                        <path d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.37 0 0 5.37 0 12c0 2.11.55 4.17 1.6 5.98L0 24l6.18-1.57A11.95 11.95 0 0 0 12 24c6.63 0 12-5.37 12-12 0-3.2-1.25-6.22-3.48-8.52zM12 22c-1.85 0-3.66-.5-5.24-1.44l-.38-.22-3.67.93.97-3.56-.25-.38A9.94 9.94 0 0 1 2 12C2 6.48 6.48 2 12 2c2.67 0 5.18 1.04 7.07 2.93A9.93 9.93 0 0 1 22 12c0 5.52-4.48 10-10 10zm5.47-7.4c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.47-.89-.79-1.49-1.76-1.66-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.61-.92-2.2-.24-.58-.48-.5-.67-.51H7.6c-.2 0-.52.07-.79.37C6.54 8.6 5.8 9.3 5.8 10.73c0 1.43 1.04 2.81 1.19 3.01.15.2 2.05 3.13 4.97 4.39.7.3 1.24.48 1.66.61.7.22 1.33.19 1.83.12.56-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35z" fill="var(--color-text-secondary)" />
                       </svg>
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{ cursor: 'pointer', opacity: 0.5 }}>
-                        <path d="M24 12c0-6.627-5.373-12-12-12S0 5.373 0 12c0 5.99 4.388 10.954 10.125 11.854V15.47H7.078V12h3.047V9.356c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874V12h3.328l-.532 3.469h-2.796v8.385C19.612 22.954 24 17.99 24 12z" fill="var(--color-text-primary)" />
+                        <path d="M24 12c0-6.627-5.373-12-12-12S0 5.373 0 12c0 5.99 4.388 10.954 10.125 11.854V15.47H7.078V12h3.047V9.356c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874V12h3.328l-.532 3.469h-2.796v8.385C19.612 22.954 24 17.99 24 12z" fill="var(--color-text-secondary)" />
                       </svg>
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{ cursor: 'pointer', opacity: 0.5 }}>
-                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z" fill="var(--color-text-primary)" />
+                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z" fill="var(--color-text-secondary)" />
                       </svg>
                     </div>
 
@@ -463,10 +622,28 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
             } : {}),
           }}>
 
-            {/* Название фирмы */}
-            <span className="t-label" style={{
-              letterSpacing: '0.26em',
-              color: 'var(--color-text-primary)',
+            {/* Соцсети — над названием фирмы */}
+            <div style={{ display: 'flex', gap: '20px', marginBottom: '16px' }}>
+              {/* WhatsApp */}
+              <svg onClick={handleWhatsApp} width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ cursor: 'pointer', opacity: 0.45 }}>
+                <path d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.37 0 0 5.37 0 12c0 2.11.55 4.17 1.6 5.98L0 24l6.18-1.57A11.95 11.95 0 0 0 12 24c6.63 0 12-5.37 12-12 0-3.2-1.25-6.22-3.48-8.52zM12 22c-1.85 0-3.66-.5-5.24-1.44l-.38-.22-3.67.93.97-3.56-.25-.38A9.94 9.94 0 0 1 2 12C2 6.48 6.48 2 12 2c2.67 0 5.18 1.04 7.07 2.93A9.93 9.93 0 0 1 22 12c0 5.52-4.48 10-10 10zm5.47-7.4c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.47-.89-.79-1.49-1.76-1.66-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.61-.92-2.2-.24-.58-.48-.5-.67-.51H7.6c-.2 0-.52.07-.79.37C6.54 8.6 5.8 9.3 5.8 10.73c0 1.43 1.04 2.81 1.19 3.01.15.2 2.05 3.13 4.97 4.39.7.3 1.24.48 1.66.61.7.22 1.33.19 1.83.12.56-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35z" fill="var(--color-text-secondary)" />
+              </svg>
+
+              {/* Facebook */}
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ cursor: 'pointer', opacity: 0.45 }}>
+                <path d="M24 12c0-6.627-5.373-12-12-12S0 5.373 0 12c0 5.99 4.388 10.954 10.125 11.854V15.47H7.078V12h3.047V9.356c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874V12h3.328l-.532 3.469h-2.796v8.385C19.612 22.954 24 17.99 24 12z" fill="var(--color-text-secondary)" />
+              </svg>
+
+              {/* Instagram */}
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ cursor: 'pointer', opacity: 0.45 }}>
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z" fill="var(--color-text-secondary)" />
+              </svg>
+            </div>
+
+            {/* Название фирмы — над адресом */}
+            <span className="t-title uppercase" style={{
+              letterSpacing: '0.2em',
+              color: 'var(--color-text-secondary)',
             }}>
               {t('footer.company')}
             </span>
@@ -491,24 +668,6 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
             }}>
               axisarredamenti@axis.it
             </span>
-
-            {/* Соцсети */}
-            <div style={{ display: 'flex', gap: '14px', marginTop: '5px' }}>
-              {/* WhatsApp */}
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ cursor: 'pointer', opacity: 0.4 }}>
-                <path d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.37 0 0 5.37 0 12c0 2.11.55 4.17 1.6 5.98L0 24l6.18-1.57A11.95 11.95 0 0 0 12 24c6.63 0 12-5.37 12-12 0-3.2-1.25-6.22-3.48-8.52zM12 22c-1.85 0-3.66-.5-5.24-1.44l-.38-.22-3.67.93.97-3.56-.25-.38A9.94 9.94 0 0 1 2 12C2 6.48 6.48 2 12 2c2.67 0 5.18 1.04 7.07 2.93A9.93 9.93 0 0 1 22 12c0 5.52-4.48 10-10 10zm5.47-7.4c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.47-.89-.79-1.49-1.76-1.66-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.61-.92-2.2-.24-.58-.48-.5-.67-.51H7.6c-.2 0-.52.07-.79.37C6.54 8.6 5.8 9.3 5.8 10.73c0 1.43 1.04 2.81 1.19 3.01.15.2 2.05 3.13 4.97 4.39.7.3 1.24.48 1.66.61.7.22 1.33.19 1.83.12.56-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35z" fill="var(--color-text-primary)" />
-              </svg>
-
-              {/* Facebook */}
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ cursor: 'pointer', opacity: 0.4 }}>
-                <path d="M24 12c0-6.627-5.373-12-12-12S0 5.373 0 12c0 5.99 4.388 10.954 10.125 11.854V15.47H7.078V12h3.047V9.356c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874V12h3.328l-.532 3.469h-2.796v8.385C19.612 22.954 24 17.99 24 12z" fill="var(--color-text-primary)" />
-              </svg>
-
-              {/* Instagram */}
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ cursor: 'pointer', opacity: 0.4 }}>
-                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z" fill="var(--color-text-primary)" />
-              </svg>
-            </div>
 
           </div>}
 
@@ -538,12 +697,13 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
             <span className="t-label" style={{
               fontWeight: 500,
               letterSpacing: '0.32em',
-              color: 'var(--color-text-primary)',
+              color: 'var(--color-text-secondary)',
             }}>
               {t('footer.company')}
             </span>
-            <span className="t-subtitle" style={{
-              letterSpacing: '0.14em',
+            <span className="t-label normal-case" style={{
+              fontStyle: 'italic',
+              letterSpacing: '0.08em',
               color: 'var(--color-text-muted)',
             }}>
               {t('footer.address')} · {t('footer.phone')} · axisarredamenti@axis.it
@@ -606,12 +766,19 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
           0%, 100% { opacity: 0.55; transform: translateX(0); }
           50%       { opacity: 0.8;  transform: translateX(-4px); }
         }
+        @keyframes wa-pop-in {
+          from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
       `}</style>
       <div id="map" style={{
         position: 'absolute',
         inset: 0,
         zIndex: isMobile && isOpen ? 35 : undefined,
-        pointerEvents: isMobile && isOpen ? 'none' : undefined,
+        // Контейнер тянется на весь экран и иначе перехватывал бы наведение/
+        // клики по форме (включая кнопку). Делаем его «прозрачным» для событий,
+        // а интерактив включаем точечно на самой карте.
+        pointerEvents: 'none',
       }}>
 
         {/* Тёмный треугольник */}
@@ -625,6 +792,9 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
           clipPath: mapClipPath,
           opacity: 0.5,
           transition: mapTransition,
+          // Взаимодействие обрабатывают отдельные зоны-оверлеи (клик по карте
+          // открывает Google Maps), поэтому у самой карты события отключены.
+          pointerEvents: 'none',
         }}>
           <iframe
             src={
@@ -645,6 +815,19 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
             referrerPolicy="no-referrer-when-downgrade"
           />
         </div>
+
+        {/* Затемнение карты под боковым меню (десктоп): градиент, разлитый
+            по всему нижнему треугольнику — темнее всего у правого края
+            (где закреплено меню) и плавно сходит на нет к диагонали, чтобы
+            светлые пункты меню читались поверх пёстрой ч/б карты. События
+            не перехватывает — карта остаётся интерактивной. */}
+        {!isMobile && (
+          <div className="absolute inset-0" style={{
+            clipPath: mapClipPath,
+            pointerEvents: 'none',
+            background: 'linear-gradient(to right, transparent 45%, color-mix(in srgb, var(--color-mosaic-1) 14%, transparent) 72%, color-mix(in srgb, var(--color-mosaic-1) 34%, transparent) 88%, color-mix(in srgb, var(--color-mosaic-1) 60%, transparent) 100%)',
+          }} />
+        )}
 
         {/* Кастомный маркер */}
         <div className="absolute inset-0" style={{
@@ -683,6 +866,20 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
         </div>
 
       </div>
+
+      {/* ── Кликабельная зона карты (десктоп): клик открывает Google Maps ── */}
+      {!isMobile && (
+        <div
+          onClick={() => window.open('https://maps.google.com/maps?q=via+Chinigiano+10+Montespertoli', '_blank', 'noopener,noreferrer')}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            clipPath: 'polygon(100% 28%, 100% 100%, 28% 100%)',
+            zIndex: 23,
+            cursor: 'pointer',
+          }}
+        />
+      )}
 
       {/* ── Кликабельная зона тёмного треугольника (закрытое состояние) ── */}
       {isMobile && !isOpen && (

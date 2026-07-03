@@ -14,7 +14,7 @@ import Contacts from '@/components/contacts';
 export default function Home() {
    const t = useTranslations('main');
 
-   const [selectedSection, switchSection] = useState<'home' | 'projects' | 'contacts'>('home');
+   const [selectedSection, switchSection] = useState<'home' | 'projects' | 'portfolio' | 'contacts'>('home');
 
    const projectsRef = useRef<HTMLDivElement | null>(null);
    const screen3Ref = useRef<HTMLDivElement | null>(null);
@@ -51,6 +51,21 @@ export default function Home() {
       observer.observe(projectsRef.current);
       return () => observer.disconnect();
     }, []);
+    useEffect(() => {
+       if (!screen3Ref.current) return;
+       const observer = new IntersectionObserver(
+         ([entry]) => {
+           if (entry.isIntersecting) {
+             switchSection('portfolio')
+           }
+         },
+         {
+           threshold: 0.3,
+         }
+       );
+       observer.observe(screen3Ref.current);
+       return () => observer.disconnect();
+     }, []);
     useEffect(() => {
        if (!contactsRef.current) return;
        const observer = new IntersectionObserver(

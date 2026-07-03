@@ -1,7 +1,11 @@
 'use client'
 
-import { forwardRef, useState } from 'react';
+import { forwardRef, useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+
+import CtaButton from '@/components/ui/cta-button';
+import Flourish from '@/components/ui/flourish';
 
 /* ── Donut geometry (viewBox 0 0 400 400) ── */
 const CX = 200, CY = 200;
@@ -42,12 +46,32 @@ const SEGMENTS = [0, 1, 2, 3].map(i => {
 });
 
 const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
-  const t = useTranslations('projects');
-  const [active, setActive] = useState<number | null>(null);
+  const t = useTranslations('services');
+  // First service is selected on load; click pins a service, hover previews it.
+  const [selected, setSelected] = useState(0);
+  const [hover, setHover] = useState<number | null>(null);
+  const active = hover ?? selected;
   const [mobileActive, setMobileActive] = useState(0);
   const [mobTouchX, setMobTouchX] = useState<number | null>(null);
+
+  /* Available service photos, discovered at runtime from the folder via the API
+     route — keyed "{slide}_{n}". svcPhoto() returns a src or null (empty slot).
+     Slide is 1‑based; n is 1 (desktop centre / mobile top) or 2 (mobile bottom). */
+  const [photos, setPhotos] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/service-photos')
+      .then(r => r.json())
+      .then((d: { photos: Record<string, string> }) => { if (alive) setPhotos(d.photos ?? {}); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+  const svcPhoto = (slide: number, n: number) => photos[`${slide}_${n}`] ?? null;
   const mobPrev = () => setMobileActive(i => (i - 1 + 4) % 4);
   const mobNext = () => setMobileActive(i => (i + 1) % 4);
+
+  /* Desktop centre circle uses slot _2, except service 2 (parquet) → _1. */
+  const centerPhoto = svcPhoto(active + 1, active === 1 ? 1 : 2);
 
   const cards = [0, 1, 2, 3].map(i => {
     const body: string = t(`slides.slide${i + 1}.body`);
@@ -74,6 +98,41 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
         }
         .svc2-fade { animation: svc2-fade-in 0.6s ease forwards; }
 
+        /* Mobile active circle — double-line frame (primary line + gold hairline
+           with a gap) plus a very subtle breathing glow. Decorative rings are
+           repeated in both keyframes so only the outer glow animates. */
+        @keyframes svc2-mob-glow {
+          0%, 100% {
+            box-shadow:
+              inset 0 0 0 5px var(--color-primary-bg),
+              inset 0 0 0 6.5px color-mix(in srgb, var(--color-accent1) 45%, transparent),
+              0 0 0 1px color-mix(in srgb, var(--color-accent1) 38%, transparent),
+              inset 0 0 55px -24px color-mix(in srgb, var(--color-primary) 40%, transparent),
+              0 0 30px 0 color-mix(in srgb, var(--color-primary) 13%, transparent);
+          }
+          50% {
+            box-shadow:
+              inset 0 0 0 5px var(--color-primary-bg),
+              inset 0 0 0 6.5px color-mix(in srgb, var(--color-accent1) 52%, transparent),
+              0 0 0 1px color-mix(in srgb, var(--color-accent1) 46%, transparent),
+              inset 0 0 55px -24px color-mix(in srgb, var(--color-primary) 40%, transparent),
+              0 0 40px 3px color-mix(in srgb, var(--color-primary) 18%, transparent);
+          }
+        }
+        .svc2-mobcircle { animation: svc2-mob-glow 5s ease-in-out infinite; }
+
+        /* Decorative dashed ring outside the active circle, slow rotation */
+        @keyframes svc2-mob-ring-spin {
+          from { transform: translate(-50%, -50%) rotate(0deg); }
+          to   { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        .svc2-mobring { animation: svc2-mob-ring-spin 160s linear infinite; }
+
+        @media (prefers-reduced-motion: reduce) {
+          .svc2-mobcircle { animation: none; }
+          .svc2-mobring { animation: none; }
+        }
+
         .svc2-section {
           display: flex; align-items: center; justify-content: center;
           position: relative;
@@ -91,14 +150,17 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
         .svc2-card {
           position: relative; z-index: 3;
           width: var(--svc2-card-w);
-          cursor: default;
+          cursor: pointer;
         }
         .svc2-card.is-active { z-index: 6; }
 
         .svc2-tl { grid-column: 1; grid-row: 1; justify-self: end;   align-self: start; }
         .svc2-tr { grid-column: 2; grid-row: 1; justify-self: start; align-self: start; }
-        .svc2-bl { grid-column: 1; grid-row: 2; justify-self: end;   align-self: end;   }
-        .svc2-br { grid-column: 2; grid-row: 2; justify-self: start; align-self: end;   }
+        /* Bottom row: both cards stretch to the row height (auto-sized to the
+           taller one) and their content flows from the top, so the headings line
+           up while the heading→text gap stays the same as the other cards. */
+        .svc2-bl { grid-column: 1; grid-row: 2; justify-self: end;   align-self: stretch; }
+        .svc2-br { grid-column: 2; grid-row: 2; justify-self: start; align-self: stretch; }
 
         /* Text/head alignment by side */
         .svc2-tl, .svc2-bl { text-align: right; }
@@ -148,12 +210,8 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
           color: var(--color-primary); line-height: 1.25;
           letter-spacing: 0.03em; margin-bottom: 14px;
         }
-        .svc2-rule {
-          width: 32px; height: 0.5px; background: var(--color-accent1);
-          margin-bottom: 14px;
-        }
+        .svc2-rule { display: block; margin-bottom: 14px; }
         .svc2-body > p + p { margin-top: 12px; }
-        .svc2-static .svc2-body { text-align: justify; }
 
         /* Centre donut + photo */
         .svc2-center {
@@ -178,44 +236,36 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
         }
         .svc2-arcnum { font-family: var(--font-sans); transition: fill 0.4s ease; pointer-events: none; }
 
-        /* CTA button below the circle — width = inner photo circle diameter */
+        /* CTA — общий элемент .cta-button; здесь только раскладка/ширина
+           (= диаметр внутреннего фото-круга). В потоке колонки, равные
+           flex-спейсеры сверху/снизу центрируют его в зазоре. */
         .svc2-cta {
-          position: absolute;
-          left: 50%; transform: translateX(-50%);
-          top: calc(50% + var(--svc2-circle) / 2 + 20px);
-          z-index: 4;
-          width: calc(var(--svc2-circle) * 0.56);
-          box-sizing: border-box; text-align: center;
-          letter-spacing: 0.22em; text-transform: uppercase;
-          color: var(--color-primary);
-          background: transparent;
-          border: 1px solid var(--color-primary);
-          padding: 13px 0;
-          cursor: pointer;
-          transition: background 0.3s, color 0.3s, border-color 0.3s;
+          flex-shrink: 0;
+          width: 302px; /* wide: 540 * 0.56 */
+          padding-left: 0; padding-right: 0;
+          text-align: center;
         }
-        .svc2-cta:hover {
-          background: var(--color-primary);
-          color: var(--color-primary-bg);
+        @media (max-width: 1699px) {
+          .svc2-cta { width: 252px; } /* desktop: 450 * 0.56 */
         }
 
-        /* Eyebrow heading — in normal flow above the diagram.
-           Negative margin-bottom compensates for the empty space at the top
-           of the diagram (above the circle) so title-to-circle = circle-to-button = 20px. */
+        /* Screen title — in flow within the column; an equal flex spacer
+           above/below centres it in the gap between the screen top and circle. */
         .svc2-eyebrow {
+          flex-shrink: 0;
           display: flex; flex-direction: column; align-items: center; gap: 14px;
-          margin-bottom: -10px; /* wide: (600-540)/2=30, gap=20 → 20-30=-10 */
         }
         .svc2-eyebrow-text {
           letter-spacing: 0.24em; text-transform: uppercase;
           color: var(--color-primary);
         }
-        @media (max-width: 1699px) {
-          .svc2-eyebrow { margin-bottom: -25px; } /* desktop: (540-450)/2=45, gap=20 → 20-45=-25 */
-        }
+
+        /* Equal spacers distribute the empty space around title / circle / CTA */
+        .svc2-spacer { flex: 1 1 0; }
 
         /* wide (≥1700px) */
         .svc2-diagram {
+          flex-shrink: 0;
           width: 100%; max-width: 1180px; height: 600px;
           column-gap: 600px; row-gap: 80px;
           --svc2-circle: 540px; --svc2-card-w: 260px; --svc2-card-w-open: 460px;
@@ -237,26 +287,30 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
       `}</style>
 
       {/* ── Desktop + wide: segmented donut diagram ── */}
-      <div className="hidden desktop:flex svc2-fade" style={{ flexDirection: 'column', alignItems: 'center' }}>
+      <div className="hidden desktop:flex svc2-fade" style={{ flexDirection: 'column', alignItems: 'center', width: '100%', height: '100%' }}>
+
+        <div className="svc2-spacer" />
 
         <div className="svc2-eyebrow">
-          <span className="svc2-eyebrow-text t-title">{t('svcTitle')}</span>
-          <svg width="14" height="14" viewBox="0 0 14 14">
-            <polygon points="7,1 13,7 7,13 1,7" fill="none"
-              stroke="var(--color-accent1)" strokeWidth="1.2" opacity="0.85" />
-          </svg>
+          <span className="svc2-eyebrow-text t-hero">{t('svcTitle')}</span>
         </div>
+
+        <div className="svc2-spacer" />
 
         <div className="svc2-diagram">
 
           {/* Centre: donut chart with photo hole */}
           <div className="svc2-center">
             <div className="svc2-photo">
-              <svg width="34" height="34" viewBox="0 0 34 34" style={{ opacity: 0.4 }}>
-                <line x1="17" y1="6" x2="17" y2="28" stroke="var(--color-primary-border)" strokeWidth="0.75" />
-                <line x1="6" y1="17" x2="28" y2="17" stroke="var(--color-primary-border)" strokeWidth="0.75" />
-                <circle cx="17" cy="17" r="9" fill="none" stroke="var(--color-primary-border)" strokeWidth="0.75" />
-              </svg>
+              {centerPhoto ? (
+                <Image src={centerPhoto} alt="" fill sizes="540px" style={{ objectFit: 'cover' }} />
+              ) : (
+                <svg width="34" height="34" viewBox="0 0 34 34" style={{ opacity: 0.4 }}>
+                  <line x1="17" y1="6" x2="17" y2="28" stroke="var(--color-primary-border)" strokeWidth="0.75" />
+                  <line x1="6" y1="17" x2="28" y2="17" stroke="var(--color-primary-border)" strokeWidth="0.75" />
+                  <circle cx="17" cy="17" r="9" fill="none" stroke="var(--color-primary-border)" strokeWidth="0.75" />
+                </svg>
+              )}
             </div>
 
             <svg viewBox="0 0 400 400" width="100%" height="100%"
@@ -280,8 +334,9 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
                       stroke={on ? 'var(--color-accent1)' : 'var(--color-primary-border)'}
                       strokeWidth={on ? 1 : 0.5}
                       strokeOpacity={on ? 0.9 : 0.5}
-                      onMouseEnter={() => setActive(seg.i)}
-                      onMouseLeave={() => setActive(null)}
+                      onMouseEnter={() => setHover(seg.i)}
+                      onMouseLeave={() => setHover(null)}
+                      onClick={() => setSelected(seg.i)}
                     />
                     <text
                       className="svc2-arcnum"
@@ -298,14 +353,6 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
             </svg>
           </div>
 
-          {/* CTA button below the circle */}
-          <button
-            className="svc2-cta t-label"
-            onClick={() => document.getElementById('contactsSection')?.scrollIntoView({ behavior: 'smooth' })}
-          >
-            {t('slides.cta')}
-          </button>
-
           {/* Service cards (corner-anchored, tied to segments) */}
           {SEGMENTS.map(seg => {
             const c = cards[seg.i];
@@ -314,8 +361,9 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
               <div
                 key={seg.i}
                 className={`svc2-card ${seg.cls}${on ? ' is-active' : ''}`}
-                onMouseEnter={() => setActive(seg.i)}
-                onMouseLeave={() => setActive(null)}
+                onMouseEnter={() => setHover(seg.i)}
+                onMouseLeave={() => setHover(null)}
+                onClick={() => setSelected(seg.i)}
               >
                 {/* Collapsed — in-flow, gives card its height */}
                 <div className="svc2-static">
@@ -324,7 +372,7 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
                     <span className="svc2-label t-caption">{c.label}</span>
                   </div>
                   <div className="svc2-title t-title">{c.title}</div>
-                  <div className="svc2-rule" />
+                  <Flourish w={56} color="var(--color-accent1)" className="svc2-rule" />
                   <div className="svc2-body t-body"><p>{c.short}</p></div>
                 </div>
                 {/* Expanded — absolute, clips open outward, one full block */}
@@ -334,7 +382,7 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
                     <span className="svc2-label t-caption">{c.label}</span>
                   </div>
                   <div className="svc2-title t-title">{c.title}</div>
-                  <div className="svc2-rule" />
+                  <Flourish w={56} color="var(--color-accent1)" className="svc2-rule" />
                   <div className="svc2-body t-body">
                     {c.paras.map((p, i) => <p key={i}>{p}</p>)}
                   </div>
@@ -343,6 +391,19 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
             );
           })}
         </div>
+
+        <div className="svc2-spacer" />
+
+        {/* CTA button below the circle */}
+        <CtaButton
+          variant="light"
+          className="svc2-cta"
+          onClick={() => document.getElementById('contactsSection')?.scrollIntoView({ behavior: 'smooth' })}
+        >
+          {t('slides.cta')}
+        </CtaButton>
+
+        <div className="svc2-spacer" />
       </div>
 
       {/* ── Mobile: circle carousel ── */}
@@ -367,15 +428,23 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           overflow: 'hidden',
         }}>
-          <div style={{ opacity: 0.3, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: '55vw', gap: '8px' }}>
-            <span className="t-display" style={{ color: 'var(--color-primary)', lineHeight: 1.3 }}>{cards[(mobileActive - 1 + 4) % 4].title}</span>
-            <div style={{ width: '24px', height: '0.5px', background: 'var(--color-accent1)' }} />
-            <span className="t-hero" style={{ color: 'var(--color-accent1)', lineHeight: 1 }}>{cards[(mobileActive - 1 + 4) % 4].num}</span>
-            <div style={{ width: '24px', height: '0.5px', background: 'var(--color-accent1)' }} />
-            <div className="t-body-sm">
-              {cards[(mobileActive - 1 + 4) % 4].paras.map((p, i) => <p key={i} style={{ margin: i > 0 ? '5px 0 0' : 0 }}>{p}</p>)}
-            </div>
-          </div>
+          {svcPhoto(mobileActive + 1, 1) && (
+            <Image
+              src={svcPhoto(mobileActive + 1, 1)!}
+              alt=""
+              fill
+              sizes="81vw"
+              style={{
+                objectFit: 'cover',
+                objectPosition: 'left top',
+                /* Service 1: the circle is offset off-screen top-left, so its
+                   top-left corner (where object-position 'left top' pins the
+                   image) is hidden. Push the image down-right into the visible
+                   arc; the gap this opens stays in the off-screen 20vw corner. */
+                transform: mobileActive === 0 ? 'translate(18vw, 18vw)' : undefined,
+              }}
+            />
+          )}
         </div>
 
         {/* Bottom-right ghost (next card) */}
@@ -388,15 +457,9 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           overflow: 'hidden',
         }}>
-          <div style={{ opacity: 0.3, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: '55vw', gap: '8px' }}>
-            <span className="t-display" style={{ color: 'var(--color-primary)', lineHeight: 1.3 }}>{cards[(mobileActive + 1) % 4].title}</span>
-            <div style={{ width: '24px', height: '0.5px', background: 'var(--color-accent1)' }} />
-            <span className="t-hero" style={{ color: 'var(--color-accent1)', lineHeight: 1 }}>{cards[(mobileActive + 1) % 4].num}</span>
-            <div style={{ width: '24px', height: '0.5px', background: 'var(--color-accent1)' }} />
-            <div className="t-body-sm">
-              {cards[(mobileActive + 1) % 4].paras.map((p, i) => <p key={i} style={{ margin: i > 0 ? '5px 0 0' : 0 }}>{p}</p>)}
-            </div>
-          </div>
+          {svcPhoto(mobileActive + 1, 2) && (
+            <Image src={svcPhoto(mobileActive + 1, 2)!} alt="" fill sizes="81vw" style={{ objectFit: 'cover' }} />
+          )}
         </div>
 
         {/* Number + Title — top-right, anchored above the circle */}
@@ -424,8 +487,32 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
           </span>
         </div>
 
+        {/* Decorative dashed ring just outside the active circle */}
+        <svg
+          className="svc2-mobring"
+          viewBox="0 0 200 200"
+          aria-hidden="true"
+          style={{
+            position: 'absolute', left: '50%', top: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '96vw', height: '96vw',
+            zIndex: 2, pointerEvents: 'none',
+          }}
+        >
+          <circle
+            cx="100" cy="100" r="98"
+            fill="none"
+            stroke="var(--color-accent1)"
+            strokeWidth="0.5"
+            strokeOpacity="0.55"
+            strokeDasharray="1.8 4"
+            strokeLinecap="round"
+          />
+        </svg>
+
         {/* Active circle */}
         <div
+          className="svc2-mobcircle"
           style={{
             position: 'relative', zIndex: 2,
             width: '90vw', height: '90vw', borderRadius: '50%',
@@ -436,46 +523,51 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: '62vw', gap: '18px' }}>
-            <div style={{ width: '48px', height: '1px', background: 'var(--color-accent1)', flexShrink: 0 }} />
+            <Flourish w={72} color="var(--color-accent1)" />
             <div className="t-body">
               {cards[mobileActive].paras.map((p, i) => <p key={i} style={{ margin: i > 0 ? '6px 0 0' : 0 }}>{p}</p>)}
             </div>
-            <div style={{ width: '48px', height: '1px', background: 'var(--color-accent1)', flexShrink: 0 }} />
+            <Flourish w={72} color="var(--color-accent1)" />
           </div>
         </div>
 
-        {/* Navigation arrows — bottom-left */}
+        {/* Navigation arrows — left, vertically centred in the gap
+            between the circle's bottom edge and the bottom menu bar.
+            translateY(50%) pins the row's centre on that midline. */}
         <div style={{
           position: 'absolute',
-          bottom: 'calc(6vh + 48px)',
+          bottom: 'calc((50vh - 45vw + 64px) / 2)',
           left: 'calc(5vw + 8px)',
-          display: 'flex', gap: '12px',
+          transform: 'translateY(50%)',
+          display: 'flex', gap: '14px',
           zIndex: 3,
         }}>
           <button
             onClick={mobPrev}
+            aria-label="Previous"
             style={{
-              width: '40px', height: '40px',
-              border: '1px solid var(--color-primary-border)',
+              width: '52px', height: '52px',
+              border: '1px solid var(--color-primary)',
               background: 'transparent', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
-            <svg width="13" height="11" viewBox="0 0 13 11" fill="none">
-              <path d="M13 5.5H2M6 1L1.5 5.5 6 10" stroke="var(--color-primary)" strokeWidth="0.75" opacity="0.6"/>
+            <svg width="22" height="18" viewBox="0 0 13 11" fill="none">
+              <path d="M13 5.5H2M6 1L1.5 5.5 6 10" stroke="var(--color-primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
           <button
             onClick={mobNext}
+            aria-label="Next"
             style={{
-              width: '40px', height: '40px',
-              border: '1px solid var(--color-primary-border)',
+              width: '52px', height: '52px',
+              border: '1px solid var(--color-primary)',
               background: 'transparent', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
-            <svg width="13" height="11" viewBox="0 0 13 11" fill="none">
-              <path d="M0 5.5h11M7 1l4.5 4.5L7 10" stroke="var(--color-primary)" strokeWidth="0.75"/>
+            <svg width="22" height="18" viewBox="0 0 13 11" fill="none">
+              <path d="M0 5.5h11M7 1l4.5 4.5L7 10" stroke="var(--color-primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
         </div>
