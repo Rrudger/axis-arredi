@@ -66,11 +66,64 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   РУССКАЯ ЛОКАЛИЗАЦИЯ — кириллический набор шрифтов.
+   Cinzel (заголовки/лейблы) и Italianno (слоган) — латиница-only:
+   в кириллице отваливаются в системный serif/cursive и выбиваются
+   из стилистики. Для ru подменяем семейства на кириллические аналоги
+   той же роскошной классической стилистики:
+     • Playfair Display — витринный высококонтрастный серив (вместо Cinzel);
+     • Great Vibes      — изящная тонкая каллиграфия, copperplate XIX в. (вместо Italianno);
+     • основной текст остаётся на Lora — у неё полноценная кириллица.
+   Правило висит только на html[lang="ru"] (lang ставится в layout.tsx),
+   поэтому en/it шрифты НЕ затрагиваются. Компоненты используют
+   var(--font-*), так что подмена срабатывает автоматически. */
+html[lang="ru"] {
+  --font-sans:   var(--font-playfair, 'Playfair Display'), serif;
+  --font-script: var(--font-greatvibes, 'Great Vibes'), cursive;
+}
+
+/* Playfair Display крупнее и шире Cinzel при одинаковом кегле, а русские
+   строки длиннее латинских. Из-за этого на экране контактов заголовок
+   (nowrap, clamp до 42px) обрезался, а кнопка «написать нам» (трекинг
+   0.32em + паддинг 48px) вылезала за контейнер под диагональ. Компенсируем
+   для ru: меньше кегль заголовка и уже трекинг — «гравированная» разрядка
+   Cinzel кириллице не нужна. Всё под html[lang="ru"], en/it не затрагиваются.
+   Кегль/трекинг заголовка заданы инлайном (анимируемые) → здесь !important;
+   у CTA паддинг/трекинг приходят из классов, поэтому !important не нужен. */
+html[lang="ru"] .contacts-title {
+  font-size: clamp(20px, 6vw, 26px) !important;
+  letter-spacing: 0.1em !important;
+}
+html[lang="ru"] .cta-button,
+html[lang="ru"] .contacts-btn-send {
+  letter-spacing: 0.18em;
+  padding-left: 30px;
+  padding-right: 30px;
+}
+/* «Написать нам» лежит во flex-колонке с align-items: stretch и растягивалась
+   по ширине более широкого соседа (логотип/слоган), а не по своему тексту —
+   из-за чего оставалась широкой даже после сжатия паддинга. Прижимаем к
+   содержимому. Только .cta-button: у .contacts-btn-send своё выравнивание
+   (margin-left:auto при открытой форме) — его не трогаем. */
+html[lang="ru"] .cta-button {
+  align-self: flex-start;
+}
+/* Курсивная фраза-слоган на 4-м экране (motto, класс .t-script используется
+   только здесь). Кегль подобран под кириллический Great Vibes.
+   Только ru; мобильный и десктопный
+   наборы (базовый + в медиазапросе ниже). */
+html[lang="ru"] .t-script { font-size: 22px; }
+
+/* ═══════════════════════════════════════════════════════════════
    ТИПОГРАФИКА — единый ограниченный набор на весь проект.
    Семейство + размер + базовые метрики хранятся ВМЕСТЕ в классе.
    Два набора: мобильный (по умолчанию) и десктопный (≥1023px).
    Точечные отклонения трекинга задаются utility-классами Tailwind
    (tracking-[...]) поверх — размеры/семейства в коде не дублируются.
+
+   Семейства даны для en/it; в ru они подменяются под html[lang="ru"]
+   (см. блок «РУССКАЯ ЛОКАЛИЗАЦИЯ»): Cinzel→Playfair Display,
+   Italianno→Great Vibes, Lora — без изменений.
 
    t-hero      — крупные титры и большие номера (Cinzel)
    t-display   — заголовки экранов (Cinzel)
@@ -112,11 +165,14 @@
   .t-body-compact { font-size: 16px; line-height: 1.85; }
   .t-body-sm  { font-size: 12px; }
   .t-script   { font-size: 44px; }
+  /* ru: кегль курсивной фразы (motto) на 4-м экране под Great Vibes.
+     Только ru — см. блок «РУССКАЯ ЛОКАЛИЗАЦИЯ». */
+  html[lang="ru"] .t-script { font-size: 34px; }
 }
 
 /* ── Contacts form ─────────────────────────────────────────── */
 .contacts-title {
-  font-family: 'Cinzel', serif;
+  font-family: var(--font-sans);
   font-size: clamp(22px, 6vw, 30px);
   font-weight: 400;
   letter-spacing: 0.28em;
@@ -142,7 +198,7 @@
 
 .contacts-label {
   display: block;
-  font-family: 'Cinzel', serif;
+  font-family: var(--font-sans);
   font-size: 11px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -211,7 +267,7 @@
     transparent 60%,
     color-mix(in srgb, var(--color-white) 14%, transparent) 100%);
   box-sizing: border-box;
-  font-family: 'Cinzel', serif;
+  font-family: var(--font-sans);
   font-weight: 600;
   letter-spacing: 0.32em;
   text-transform: uppercase;
@@ -256,8 +312,27 @@
   }
 }
 
+/* Тач-устройства (нет ховера) — та же смена состояний при нажатии (:active),
+   что на десктопе при наведении: тёмная кнопка становится «светлой»,
+   светлая — «тёмной». */
+@media (hover: none) {
+  .cta-button:active,
+  .contacts-btn-send:active {
+    background: transparent;
+    color: var(--color-primary);
+    border-color: var(--color-accent1);
+  }
+  .cta-button--light:active {
+    background: var(--cta-frost), color-mix(in srgb, var(--color-primary) 78%, transparent);
+    color: var(--color-primary-bg);
+    border-color: var(--color-primary);
+  }
+}
+
 @media (min-width: 768px) {
-  .contacts-btn-send { padding: 12px 72px; }
+  /* Вертикальный паддинг = как у .cta-button (16px), чтобы тёмная кнопка
+     экрана 4 совпадала по высоте со светлой кнопкой экрана 2. */
+  .contacts-btn-send { padding: 16px 72px; }
 }
 /* Десктоп — текст жирнее для лучшей читаемости */
 @media (min-width: 1023px) {
@@ -341,11 +416,13 @@
     --color-menu-inactive-light: var(--color-primary);
   }
 
-  /* Контактный (4-й) экран: меню целиком лежит на тёмном таупе-
-     треугольнике (bg-primary), поэтому тёмные тона сливаются с фоном.
-     Модификатор вешается на контейнер меню только на этой секции —
-     светлый набор, читаемый по таупе. Внутри медиазапроса → мобильные
-     версии и остальные экраны не затрагиваются. */
+  /* Тёмные секции: контактный (4-й) экран — меню лежит на тёмном
+     таупе-треугольнике (bg-primary); первый экран (home) — на тёмной
+     мозаике и тёмном фото нижнего контейнера. Тёмные тона меню там
+     сливаются с фоном. Модификатор вешается на контейнер меню только
+     на этих секциях — светлый набор, читаемый по тёмному. Внутри
+     медиазапроса → мобильные версии и остальные экраны не
+     затрагиваются. */
   .menu-on-dark {
     --color-menu-active:         var(--color-overlay-88);
     --color-menu-inactive:       var(--color-overlay-60);

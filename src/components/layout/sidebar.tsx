@@ -59,10 +59,20 @@ function CabinetIcon({ className }: { className?: string }) {
 
 const localeOrder = ['it', 'en', 'ru'] as const;
 
+type Section = 'home' | 'projects' | 'portfolio' | 'contacts';
+
+/* Пункты меню; порядок = порядок секций на странице. */
+const menuItems = [
+  { id: 'home',      label: 'menu.home',      Icon: TuscanHouseIcon },
+  { id: 'projects',  label: 'menu.projects',  Icon: CraftIcon },
+  { id: 'portfolio', label: 'menu.portfolio', Icon: CabinetIcon },
+  { id: 'contacts',  label: 'menu.contacts',  Icon: AtSign },
+] as const;
+
 export default function Sidebar({ selected, switchSection }:
 {
-  selected: number,
-  switchSection: React.Dispatch<React.SetStateAction<number>>
+  selected: Section,
+  switchSection: React.Dispatch<React.SetStateAction<Section>>
 }) {
   const locale = useLocale();
   const t = useTranslations('main');
@@ -83,35 +93,16 @@ export default function Sidebar({ selected, switchSection }:
   const inactiveClr = selected === 'contacts'
     ? 'text-[var(--color-menu-inactive-light)] border-transparent'
     : 'text-[var(--color-menu-inactive)] border-transparent';
-  const activeText   = activeClr.split(' ')[0];
-  const inactiveText = inactiveClr.split(' ')[0];
+  const activeText = activeClr.split(' ')[0];
 
-  const [itemHovered, changeHovered] = useState<0 | 'home' | 'projects' | 'portfolio' | 'contacts'>(0);
-  const handleOnHover = (e) => {
-    const item = e.target.closest('li');
-    const selectedItem = document.getElementById(selected)!;
-    changeHovered(item.id);
-    selectedItem.classList.remove(...activeClr.split(' '))
-    selectedItem.classList.add(...inactiveClr.split(' '))
-    item.classList.remove(...inactiveClr.split(' '))
-    item.classList.add('scale-110', ...activeClr.split(' '))
+  const [itemHovered, changeHovered] = useState<0 | Section>(0);
+  // Активные цвета носит либо наведённый пункт, либо (без ховера) выбранный.
+  const highlighted = itemHovered || selected;
+
+  const handleSwitchSection = (id: Section) => {
+    switchSection(id);
+    document.getElementById(`${id}Section`)?.scrollIntoView({ behavior: 'smooth' });
   };
-  const handleOffHover = (e) => {
-    const item = e.target.closest('li');
-    changeHovered(0);
-    const selectedItem = document.getElementById(selected)!;
-    item.classList.remove('scale-110', ...activeClr.split(' '))
-    item.classList.add(...inactiveClr.split(' '))
-    selectedItem.classList.remove(...inactiveClr.split(' '))
-    selectedItem.classList.add(...activeClr.split(' '))
-  };
-  const handleSwitchSection = (e) => {
-    const item = e.target.closest('li');
-    switchSection(item.id);
-    document.getElementById(`${item.id}Section`)?.scrollIntoView({
-    behavior: 'smooth',
-  });
-  }
 
   return (
     <>
@@ -122,7 +113,12 @@ export default function Sidebar({ selected, switchSection }:
       t-title font-bold desktop:font-black
       bg-[var(--color-menu-plate)] backdrop-blur-xl ring-1 ring-primary-border/20
       desktop:bg-transparent desktop:backdrop-blur-none desktop:ring-0`,
-      selected === 'contacts' && 'menu-on-dark')}>
+      // Тёмные секции: контакты (таупе-треугольник) и первый экран на десктопе
+      // (мозаика + тёмное фото) — светлый набор цветов меню. Класс действует
+      // только в десктопном медиазапросе; на мобиле на home меню скрыто.
+      (selected === 'contacts' || selected === 'home') && 'menu-on-dark',
+      // Первый экран (home): на мобиле меню скрыто, на десктопе — остаётся.
+      selected === 'home' && 'hidden desktop:block')}>
 
       <ul className='list-none flex flex-row items-stretch cursor-pointer
         desktop:flex-col desktop:text-right desktop:w-[200px]'>
@@ -159,58 +155,26 @@ export default function Sidebar({ selected, switchSection }:
             </li>
           );
         })()}
-        <li id='home' onClick={handleSwitchSection} onMouseEnter={handleOnHover} onMouseLeave={handleOffHover} className={clsx(
-          'flex-1 flex items-center justify-center py-3',
-          'desktop:flex-none desktop:justify-end desktop:pr-8 desktop:py-4 desktop:border-r-4',
-          'transition-colors duration-700 ease-in-out',
-          selected === 'home' ? activeClr : inactiveClr,
-        )}>
-          {itemHovered === 'home' ? t('menu.home') : (
-            <span className="flex flex-col items-center gap-1 desktop:contents">
-              <TuscanHouseIcon className='sm:size-[32px] size-[24px]' />
-              <span className={clsx('desktop:hidden w-1 h-1 rounded-full transition-all duration-300', selected === 'home' ? 'opacity-100 bg-current' : 'opacity-0')} />
-            </span>
-          )}
-        </li>
-        <li id='projects' onClick={handleSwitchSection} onMouseEnter={handleOnHover} onMouseLeave={handleOffHover} className={clsx(
-          'flex-1 flex items-center justify-center py-3',
-          'desktop:flex-none desktop:justify-end desktop:pr-8 desktop:py-4 desktop:border-r-4',
-          'transition-colors duration-700 ease-in-out',
-          selected === 'projects' ? activeClr : inactiveClr,
-        )}>
-          {itemHovered === 'projects' ? t('menu.projects') : (
-            <span className="flex flex-col items-center gap-1 desktop:contents">
-              <CraftIcon className='sm:size-[32px] size-[24px]' />
-              <span className={clsx('desktop:hidden w-1 h-1 rounded-full transition-all duration-300', selected === 'projects' ? 'opacity-100 bg-current' : 'opacity-0')} />
-            </span>
-          )}
-        </li>
-        <li id='portfolio' onClick={handleSwitchSection} onMouseEnter={handleOnHover} onMouseLeave={handleOffHover} className={clsx(
-          'flex-1 flex items-center justify-center py-3',
-          'desktop:flex-none desktop:justify-end desktop:pr-8 desktop:py-4 desktop:border-r-4',
-          'transition-colors duration-700 ease-in-out',
-          selected === 'portfolio' ? activeClr : inactiveClr,
-        )}>
-          {itemHovered === 'portfolio' ? t('menu.portfolio') : (
-            <span className="flex flex-col items-center gap-1 desktop:contents">
-              <CabinetIcon className='sm:size-[32px] size-[24px]' />
-              <span className={clsx('desktop:hidden w-1 h-1 rounded-full transition-all duration-300', selected === 'portfolio' ? 'opacity-100 bg-current' : 'opacity-0')} />
-            </span>
-          )}
-        </li>
-        <li id='contacts' onClick={handleSwitchSection} onMouseEnter={handleOnHover} onMouseLeave={handleOffHover} className={clsx(
-          'flex-1 flex items-center justify-center py-3',
-          'desktop:flex-none desktop:justify-end desktop:pr-8 desktop:py-4 desktop:border-r-4',
-          'transition-colors duration-700 ease-in-out',
-          selected === 'contacts' ? activeClr : inactiveClr,
-        )}>
-          {itemHovered === 'contacts' ? t('menu.contacts') : (
-            <span className="flex flex-col items-center gap-1 desktop:contents">
-              <AtSign className='sm:size-[32px] size-[24px]' />
-              <span className={clsx('desktop:hidden w-1 h-1 rounded-full transition-all duration-300', selected === 'contacts' ? 'opacity-100 bg-current' : 'opacity-0')} />
-            </span>
-          )}
-        </li>
+        {menuItems.map(({ id, label, Icon }) => (
+          <li key={id} id={id}
+            onClick={() => handleSwitchSection(id)}
+            onMouseEnter={() => changeHovered(id)}
+            onMouseLeave={() => changeHovered(0)}
+            className={clsx(
+              'flex-1 flex items-center justify-center py-3',
+              'desktop:flex-none desktop:justify-end desktop:pr-8 desktop:py-4 desktop:border-r-4',
+              'transition-colors duration-700 ease-in-out',
+              highlighted === id ? activeClr : inactiveClr,
+              itemHovered === id && 'scale-110',
+            )}>
+            {itemHovered === id ? t(label) : (
+              <span className="flex flex-col items-center gap-1 desktop:contents">
+                <Icon className='sm:size-[32px] size-[24px]' />
+                <span className={clsx('desktop:hidden w-1 h-1 rounded-full transition-all duration-300', selected === id ? 'opacity-100 bg-current' : 'opacity-0')} />
+              </span>
+            )}
+          </li>
+        ))}
       </ul>
     </div>
     </>

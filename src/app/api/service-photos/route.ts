@@ -4,17 +4,22 @@ import { NextResponse } from 'next/server';
 
 /* Lists the service photos that actually exist in /public/images/services so the
    services screen reflects the folder automatically — rename/add/remove files and
-   the change shows up on the next request, no code edit needed.
+   the change shows up after the next build, no code edit needed.
 
    Files are named "{slide}_{n}.{ext}": the first number is the service-slide
    (1‑4), the second is the slot (1 = desktop centre / mobile top, 2 = mobile
    bottom). The response maps that "{slide}_{n}" key to the public src path,
    with a "?v=<mtime>" version so replacing a file (same name, new content)
-   changes the URL and busts the next/image + browser caches. */
+   changes the URL and busts the next/image + browser caches.
+
+   Роут статический (пререндерится на сборке): на Vercel serverless-функция
+   не видит public/ на диске, поэтому читать папку в рантайме нельзя —
+   список запекается при build. В dev-режиме рендер всё равно на каждый
+   запрос, так что локально файлы подхватываются как раньше. */
 const DIR = join(process.cwd(), 'public', 'images', 'services');
 const FILE_RE = /^(\d+)_(\d+)\.(jpe?g|png|webp|avif)$/i;
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-static';
 
 export async function GET() {
   const photos: Record<string, string> = {};

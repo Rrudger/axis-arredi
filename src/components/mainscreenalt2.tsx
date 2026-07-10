@@ -2,6 +2,7 @@
 
 import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import Flourish from "@/components/ui/flourish";
 
 // Замер размера контейнера делаем ДО отрисовки (useLayoutEffect), чтобы первый
 // же кадр знал isMobile и не мигал десктопной мозаикой. На сервере layout-эффект
@@ -59,13 +60,15 @@ const COLUMNS_MOBILE = [
   ] },
 ];
 
-function MasonryGrid({ isMobile }: { isMobile: boolean }) {
+function MasonryGrid({ isMobile, shuffleTick = 0 }: { isMobile: boolean; shuffleTick?: number }) {
   const columns = isMobile ? COLUMNS_MOBILE : COLUMNS_DESKTOP;
   const total = columns.reduce((s, c) => s + c.items.length, 0);
 
-  // Десктоп: скетчи 0..total-1 перемешиваются один раз после монтирования
-  // (чтобы не ловить рассинхрон гидрации) и раскладываются по контейнерам в
-  // случайном порядке. До готовности перестановки — исходный порядок 0..N-1.
+  // Десктоп: скетчи 0..total-1 перемешиваются после монтирования (чтобы не ловить
+  // рассинхрон гидрации) и раскладываются по контейнерам в случайном порядке.
+  // Пересортировка повторяется на каждый рост shuffleTick — его увеличивают,
+  // когда нижний контейнер разворачивается на весь экран. До готовности
+  // перестановки — исходный порядок 0..N-1.
   const [shuffle, setShuffle] = useState<number[] | null>(null);
   useEffect(() => {
     if (isMobile) { setShuffle(null); return; }
@@ -75,7 +78,7 @@ function MasonryGrid({ isMobile }: { isMobile: boolean }) {
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     setShuffle(arr);
-  }, [isMobile, total]);
+  }, [isMobile, total, shuffleTick]);
 
   let n = 0; // сквозной порядковый номер плитки (1..total)
   return (
@@ -154,22 +157,25 @@ function MasonryGrid({ isMobile }: { isMobile: boolean }) {
 
 const gap_MOBILE  = 56;
 const gap_DESKTOP = 150;
-const CHEV_L_HALF = 22;
-const CHEV_R_HALF = 22;
+const CHEV_L_HALF = 29;
+const CHEV_R_HALF = 29;
 
-function ChevronSketch({ active, mirror }: { active: boolean; mirror?: boolean }) {
-  // «старое золото» (светлый, более яркий тон) — виден на обеих половинах экрана 1
+function ChevronSketch({ mirror, thin }: { mirror?: boolean; thin?: boolean }) {
+  // «старое золото» (светлый, более яркий тон) — виден на обеих половинах экрана 1.
+  // Цвет НЕ затухает в активном состоянии: нажатый шеврон остаётся видимым.
   const base = "var(--color-gold-light)";
-  const c  = active ? `color-mix(in srgb, ${base} 26%, transparent)` : base;
-  const c2 = active ? `color-mix(in srgb, ${base} 10%, transparent)` : `color-mix(in srgb, ${base} 72%, transparent)`;
-  const c3 = active ? `color-mix(in srgb, ${base} 5%, transparent)`  : `color-mix(in srgb, ${base} 45%, transparent)`;
+  const c  = base;
+  const c2 = `color-mix(in srgb, ${base} 72%, transparent)`;
+  const c3 = `color-mix(in srgb, ${base} 45%, transparent)`;
+  // Во время интро-пульсации штрихи толще; замерев (thin) — плавно утоньшаются.
+  const tr = { transition: "stroke-width 0.7s ease, stroke 0.4s" };
   return (
-    <svg width="44" height="44" viewBox="0 0 44 44" fill="none" style={{ display: "block", overflow: "visible", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.40))" }}>
+    <svg width="58" height="58" viewBox="0 0 44 44" fill="none" style={{ display: "block", overflow: "visible", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.40))" }}>
       <g transform={mirror ? "scale(-1,1) translate(-44,0)" : undefined}>
-        <polyline points="30,8 14,22 30,36" stroke={c} strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round" style={{ transition: "stroke 0.4s" }} />
-        <line x1="10" y1="16" x2="10" y2="28" stroke={c2} strokeWidth="2.2" strokeLinecap="round" style={{ transition: "stroke 0.4s" }} />
-        <line x1="6"  y1="19" x2="6"  y2="25" stroke={c3} strokeWidth="1.6" strokeLinecap="round" style={{ transition: "stroke 0.4s" }} />
-        <line x1="31" y1="22" x2="42" y2="22" stroke={c3} strokeWidth="1.4" strokeDasharray="3 2.5" style={{ transition: "stroke 0.4s" }} />
+        <polyline points="30,8 14,22 30,36" stroke={c} strokeLinecap="round" strokeLinejoin="round" style={{ ...tr, strokeWidth: thin ? 2.6 : 4.6 }} />
+        <line x1="10" y1="16" x2="10" y2="28" stroke={c2} strokeLinecap="round" style={{ ...tr, strokeWidth: thin ? 1.7 : 3.0 }} />
+        <line x1="6"  y1="19" x2="6"  y2="25" stroke={c3} strokeLinecap="round" style={{ ...tr, strokeWidth: thin ? 1.2 : 2.2 }} />
+        <line x1="31" y1="22" x2="42" y2="22" stroke={c3} strokeDasharray="3 2.5" style={{ ...tr, strokeWidth: thin ? 1.05 : 1.9 }} />
       </g>
     </svg>
   );
@@ -199,13 +205,19 @@ const DiagonalBlock = forwardRef<HTMLDivElement>((_, ref) => {
   const [activeSide, setActiveSide] = useState<Side>(null);
   const [expanded,   setExpanded]   = useState(false);
   const [rotated,    setRotated]    = useState(false);
+  // Интро-пульсация шевронов: пару секунд мерцают, затем замирают и утоньшаются.
+  const [chevSettled, setChevSettled] = useState(false);
 
   const [leftZ,  setLeftZ]  = useState(1);
   const [rightZ, setRightZ] = useState(1);
+  // Растёт при каждом разворачивании нижнего контейнера — триггер пересортировки
+  // мозаики верхнего контейнера (только десктоп).
+  const [shuffleTick, setShuffleTick] = useState(0);
 
   const activeSideRef  = useRef<Side>(null);
   const leftZTimer     = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rightZTimer    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shuffleTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const setCurrent = (s: Side) => {
     const prev = activeSideRef.current;
@@ -222,6 +234,14 @@ const DiagonalBlock = forwardRef<HTMLDivElement>((_, ref) => {
       if (rightZTimer.current) clearTimeout(rightZTimer.current);
       setRightZ(10);
       setLeftZ(0);
+      // Нижний контейнер разворачивается на весь экран — перемешиваем мозаику
+      // верхнего контейнера (десктоп; на мобиле мозаики нет). Ждём завершения
+      // анимации разворачивания и лишь потом пересортировываем: мозаика к этому
+      // моменту скрыта под фото, и пользователь не видит момент перестановки.
+      if (!isMobile) {
+        if (shuffleTimer.current) clearTimeout(shuffleTimer.current);
+        shuffleTimer.current = setTimeout(() => setShuffleTick((t) => t + 1), CLIP_DURATION);
+      }
     } else {
       if (prev === "left") {
         setLeftZ(10);
@@ -270,7 +290,12 @@ const DiagonalBlock = forwardRef<HTMLDivElement>((_, ref) => {
   useEffect(() => {
     const t1 = setTimeout(() => setExpanded(true), 120);
     const t2 = setTimeout(() => setRotated(true), 780);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    // ~3 с пульсации, затем замирают.
+    const t3 = setTimeout(() => setChevSettled(true), 3000);
+    return () => {
+      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+      if (shuffleTimer.current) clearTimeout(shuffleTimer.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -298,8 +323,8 @@ const DiagonalBlock = forwardRef<HTMLDivElement>((_, ref) => {
   // нарисован в другом масштабе/кадре, поэтому у него свои сдвиг и масштаб —
   // так линии полок продолжают линии фото через диагональ. Значения подобраны
   // наложением скетча на фото для мобильного кадра ~402×874.
-  const SK_SHIFT_X = 0.17;   // доля коробки, + вправо
-  const SK_SHIFT_Y = 0.16;   // доля коробки, + вниз
+  const SK_SHIFT_X = 0.11;   // доля коробки, + вправо
+  const SK_SHIFT_Y = 0.12;   // доля коробки, + вниз
   const SK_SCALE   = 1.1;
 
   // Размер коробки <img> (в px), при котором повёрнутый на closedRot прямоугольник
@@ -382,9 +407,15 @@ const DiagonalBlock = forwardRef<HTMLDivElement>((_, ref) => {
           0%,100% { opacity:.52; transform:translateX(0); }
           50%      { opacity:1;   transform:translateX(10px); }
         }
-        .chev-sketch { animation: sketch-pulse 2.6s ease-in-out infinite; }
-        .chev-modern { animation: modern-pulse 2.6s ease-in-out infinite; animation-delay:1.3s; }
-        .chev-active { animation:none !important; opacity:.15 !important; transform:none !important; }
+        .chev-sketch { animation: sketch-pulse 2.6s ease-in-out infinite; transition: opacity 0.7s ease, transform 0.7s ease; }
+        .chev-modern { animation: modern-pulse 2.6s ease-in-out infinite; animation-delay:1.3s; transition: opacity 0.7s ease, transform 0.7s ease; }
+        /* Отпульсировав пару секунд, шевроны замирают: пульс off, полная
+           непрозрачность, без смещения (штрихи при этом плавно утоньшаются —
+           см. strokeWidth в ChevronSketch). */
+        .chev-settled { animation:none !important; opacity:1 !important; transform:none !important; }
+        /* Активный (нажатый) шеврон: останавливаем пульсацию, но НЕ прячем —
+           остаётся видимым при раскрытом контейнере. */
+        .chev-active { animation:none !important; opacity:1 !important; transform:none !important; }
       `}</style>
 
       <div ref={setSectionRef} id="homeSection" className="relative w-screen h-screen overflow-hidden"
@@ -449,15 +480,42 @@ const DiagonalBlock = forwardRef<HTMLDivElement>((_, ref) => {
               }} />
             </div>
           ) : (
-            <MasonryGrid isMobile={false} />
+            <MasonryGrid isMobile={false} shuffleTick={shuffleTick} />
           )}
           <div className="absolute inset-0 flex items-start justify-start pointer-events-none">
-            <div className="mt-12 ml-12 t-label" style={{
-              // На мобиле верхний треугольник — светлый скетч, поэтому берём
-              // приглушённый тёмный токен; на десктопе фон тёмный — светлый overlay.
-              color: isMobile ? "var(--color-text-muted)" : "var(--color-overlay-10)",
-              letterSpacing: "0.3em",
-            }}>Progetto</div>
+            {isMobile ? (
+              // Мобайл: в закрытом состоянии — «Idea». При раскрытии верхнего
+              // контейнера (activeSide === "left") слово зачёркивается линией
+              // (width 0→100%), а ниже проявляется «Progetto».
+              <div className="mt-12 ml-12 t-title uppercase" style={{
+                color: "var(--color-text-muted)",
+                letterSpacing: "0.3em",
+              }}>
+                <div style={{ position: "relative", display: "inline-block" }}>
+                  Idee
+                  <span style={{
+                    position: "absolute",
+                    left: 0, top: "50%",
+                    height: "1px",
+                    background: "currentColor",
+                    width: activeSide === "left" ? "100%" : "0%",
+                    transition: "width 0.5s cubic-bezier(0.77,0,0.18,1)",
+                  }} />
+                </div>
+                <div style={{
+                  opacity: activeSide === "left" ? 1 : 0,
+                  transform: activeSide === "left" ? "translateY(0)" : "translateY(-4px)",
+                  transition: "opacity 0.45s ease 0.4s, transform 0.45s ease 0.4s",
+                  marginTop: "4px",
+                }}>Progetto</div>
+              </div>
+            ) : (
+              <div className="mt-12 ml-12 t-label" style={{
+                // На десктопе фон тёмный — светлый overlay.
+                color: "var(--color-overlay-10)",
+                letterSpacing: "0.3em",
+              }}>Progetto</div>
+            )}
           </div>
         </div>
 
@@ -467,7 +525,7 @@ const DiagonalBlock = forwardRef<HTMLDivElement>((_, ref) => {
           transition: "clip-path 0.85s cubic-bezier(0.77,0,0.18,1)",
           zIndex: rightZ,
         }}>
-          {isMobile && (
+          {windowW > 0 && (
             <div style={{
               position: "absolute",
               inset: 0,
@@ -478,7 +536,8 @@ const DiagonalBlock = forwardRef<HTMLDivElement>((_, ref) => {
               pointerEvents: "none",
             }}>
               <img
-                src="/images/main/1.jpg"
+                // Мобайл — вертикальный кадр винного шкафа; десктоп — main/00.jpg.
+                src={isMobile ? "/images/main/1.jpg" : "/images/main/00.jpg"}
                 alt=""
                 style={{
                   flexShrink: 0,
@@ -486,12 +545,15 @@ const DiagonalBlock = forwardRef<HTMLDivElement>((_, ref) => {
                   // иначе коробка ужимается до ширины контейнера и не закрывает поворот.
                   maxWidth: "none",
                   maxHeight: "none",
-                  width: activeSide === "right" ? `${windowW}px` : `${coverBox.w}px`,
-                  height: activeSide === "right" ? `${windowH}px` : `${coverBox.h}px`,
+                  // Плоско (без поворота, кадр в размер экрана) — когда контейнер
+                  // раскрыт ИЛИ на десктопе (там фото в закрытом состоянии не
+                  // наклоняем). На мобиле в закрытом состоянии — поворот по диагонали.
+                  width: activeSide === "right" || !isMobile ? `${windowW}px` : `${coverBox.w}px`,
+                  height: activeSide === "right" || !isMobile ? `${windowH}px` : `${coverBox.h}px`,
                   objectFit: "cover",
                   objectPosition: "50% 50%",
                   transformOrigin: "center center",
-                  transform: activeSide === "right"
+                  transform: activeSide === "right" || !isMobile
                     ? "rotate(0deg)"
                     : `rotate(${closedRot}deg) translate(${SHIFT_X * 100}%, ${SHIFT_Y * 100}%)`,
                   transition:
@@ -542,8 +604,8 @@ const DiagonalBlock = forwardRef<HTMLDivElement>((_, ref) => {
             <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
               <div style={{ flex: 1 }} />
               <div style={{ width: "32px", flexShrink: 0 }} />
-              <div className={`chev-sketch${activeSide === "left" ? " chev-active" : ""}`} style={{ flexShrink: 0 }}>
-                <ChevronSketch active={activeSide === "left"} />
+              <div className={`chev-sketch${chevSettled ? " chev-settled" : ""}${activeSide === "left" ? " chev-active" : ""}`} style={{ flexShrink: 0 }}>
+                <ChevronSketch thin={chevSettled} />
               </div>
               <div style={{ width: `${gap}px`, flexShrink: 0 }} />
             </div>
@@ -573,29 +635,33 @@ const DiagonalBlock = forwardRef<HTMLDivElement>((_, ref) => {
                 borderRight: "1px solid var(--color-overlay-06)",
                 pointerEvents: "none",
               }}>
-                <div style={{ width: "18px", height: "1px", background: "var(--color-overlay-30)" }} />
+                <Flourish w={56} color="var(--color-accent1)" />
                 <span className="t-title uppercase" style={{
-                  fontWeight: 300,
+                  // 300 ни у одного из подключённых шрифтов не загружен —
+                  // браузер всё равно рендерил ближайший 400.
+                  fontWeight: 400,
                   letterSpacing: isMobile ? "0.22em" : "0.42em",
                   color: "var(--color-text-inverse)",
                   textShadow: "0 1px 16px var(--color-shadow)",
                   whiteSpace: "nowrap",
                 }}>{t("title")}</span>
                 <span className="t-subtitle" style={{
-                  fontWeight: 300,
+                  // 300 ни у одного из подключённых шрифтов не загружен —
+                  // браузер всё равно рендерил ближайший 400.
+                  fontWeight: 400,
                   letterSpacing: "0.18em",
                   color: "var(--color-overlay-42)",
                   whiteSpace: "nowrap",
                 }}>{t("region")}</span>
-                <div style={{ width: "18px", height: "1px", background: "var(--color-overlay-16)" }} />
+                <Flourish w={56} color="var(--color-accent1)" />
               </div>
             </div>
 
             {/* Правая сторона */}
             <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
               <div style={{ width: `${gap}px`, flexShrink: 0 }} />
-              <div className={`chev-modern${activeSide === "right" ? " chev-active" : ""}`} style={{ flexShrink: 0 }}>
-                <ChevronSketch active={activeSide === "right"} mirror />
+              <div className={`chev-modern${chevSettled ? " chev-settled" : ""}${activeSide === "right" ? " chev-active" : ""}`} style={{ flexShrink: 0 }}>
+                <ChevronSketch mirror thin={chevSettled} />
               </div>
               <div style={{ width: "32px", flexShrink: 0 }} />
               <div style={{ flex: 1 }} />

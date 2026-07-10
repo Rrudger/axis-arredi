@@ -62,10 +62,12 @@
     "message": "Сообщение",
     "write": "Написать нам",
     "send": "Отправить",
+    "stub": "Заглушка: отправка не работает — подключить почту!",
     "footer": {
       "company": "Axis arredi",
-      "address": "Италия, Монтесперталь (FI), via Chinigiano 10",
+      "address": "Italia, Montespertoli (FI), via Chinigiano 10",
       "phone": "+39 380 262 8180",
+      "piva": "P.IVA 07546380481",
       "rights": "© 2024 Axis arredi. Все права защищены."
     }
   }

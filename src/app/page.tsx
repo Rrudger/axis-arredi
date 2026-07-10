@@ -4,8 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
 import Sidebar from '@/components/layout/sidebar';
-import MainScreen from '@/components/mainscreen';
-import MainScreenAlt from '@/components/mainscreenalt';
 import MainScreenAlt2 from '@/components/mainscreenalt2';
 import Projects from '@/components/services';
 import ProjectsScreen from '@/components/projects';
@@ -21,66 +19,25 @@ export default function Home() {
    const contactsRef = useRef<HTMLDivElement | null>(null);
    const mainRef = useRef<HTMLDivElement | null>(null);
 
+   // Один наблюдатель на все секции: какая видна на 30% — та и активна в меню.
    useEffect(() => {
-      if (!mainRef.current) return;
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) {
-            switchSection('home')
-          }
-        },
-        {
-          threshold: 0.3,
-        }
-      );
-      observer.observe(mainRef.current);
-      return () => observer.disconnect();
+      const sections = [
+        [mainRef, 'home'],
+        [projectsRef, 'projects'],
+        [screen3Ref, 'portfolio'],
+        [contactsRef, 'contacts'],
+      ] as const;
+      const observers = sections.flatMap(([ref, section]) => {
+        if (!ref.current) return [];
+        const observer = new IntersectionObserver(
+          ([entry]) => { if (entry.isIntersecting) switchSection(section); },
+          { threshold: 0.3 },
+        );
+        observer.observe(ref.current);
+        return [observer];
+      });
+      return () => observers.forEach(o => o.disconnect());
     }, []);
-   useEffect(() => {
-      if (!projectsRef.current) return;
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) {
-            switchSection('projects')
-          }
-        },
-        {
-          threshold: 0.3,
-        }
-      );
-      observer.observe(projectsRef.current);
-      return () => observer.disconnect();
-    }, []);
-    useEffect(() => {
-       if (!screen3Ref.current) return;
-       const observer = new IntersectionObserver(
-         ([entry]) => {
-           if (entry.isIntersecting) {
-             switchSection('portfolio')
-           }
-         },
-         {
-           threshold: 0.3,
-         }
-       );
-       observer.observe(screen3Ref.current);
-       return () => observer.disconnect();
-     }, []);
-    useEffect(() => {
-       if (!contactsRef.current) return;
-       const observer = new IntersectionObserver(
-         ([entry]) => {
-           if (entry.isIntersecting) {
-             switchSection('contacts')
-           }
-         },
-         {
-           threshold: 0.3,
-         }
-       );
-       observer.observe(contactsRef.current);
-       return () => observer.disconnect();
-     }, []);
 
   return (
     <div className='static'>

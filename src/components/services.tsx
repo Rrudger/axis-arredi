@@ -547,7 +547,7 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
             aria-label="Previous"
             style={{
               width: '52px', height: '52px',
-              border: '1px solid var(--color-primary)',
+              border: '1px solid var(--color-accent1)',
               background: 'transparent', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
@@ -561,7 +561,7 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
             aria-label="Next"
             style={{
               width: '52px', height: '52px',
-              border: '1px solid var(--color-primary)',
+              border: '1px solid var(--color-accent1)',
               background: 'transparent', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}

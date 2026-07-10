@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- Фавикон «ласточкин хвост» — неактивная вкладка (подменяется в
+       FaviconSwitcher по visibilitychange). Цвет = secondary активной темы
+       taupe-cream: text-secondary = primary #9E8B72. Средний тон, читается
+       и на светлой, и на тёмной панели вкладок, поэтому без media query.
+       (В XML-комментарии нельзя писать двойной дефис, поэтому имена
+       переменных здесь без префикса.) -->
+  <style>
+    path { fill: #9E8B72; }
+  </style>
+  <path d="M2 2 H8 V8 L16 6 V18 L8 16 V22 H2 Z"/>
+  <path d="M10 2 V5.5 L18 3.5 V20.5 L10 18.5 V22 H22 V2 Z"/>
+</svg>

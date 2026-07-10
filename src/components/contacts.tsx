@@ -37,9 +37,18 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
     ? Math.atan2(windowH, windowW) * (180 / Math.PI)
     : 65;
 
+  // Заглушка вместо отправки: показывает напоминание, что почтовый сервис
+  // ещё не подключён. Убрать вместе с contacts.stub из messages/*, когда
+  // появится настоящая submission logic.
+  const [stubShown, setStubShown] = useState(false);
+  const stubTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (stubTimer.current) clearTimeout(stubTimer.current); }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: submission logic
+    setStubShown(true);
+    if (stubTimer.current) clearTimeout(stubTimer.current);
+    stubTimer.current = setTimeout(() => setStubShown(false), 5000);
   };
 
   // Телефон для WhatsApp: тот же номер, что в футере, без пробелов и «+».
@@ -321,6 +330,13 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
                   color: 'var(--color-text-muted)',
                   whiteSpace: 'nowrap',
                 }}>
+                  {t('footer.piva')}
+                </span>
+                <span className="t-subtitle" style={{
+                  letterSpacing: '0.09em',
+                  color: 'var(--color-text-muted)',
+                  whiteSpace: 'nowrap',
+                }}>
                   {t('footer.phone')}
                 </span>
                 <span className="t-subtitle" style={{
@@ -434,7 +450,7 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
 
             <div style={{ margin: '16px 0 24px' }}>
               {titleW > 0 && (
-                <Flourish w={titleW} curlW={Math.min(56, titleW)} color={isOpen ? 'var(--color-accent1)' : 'var(--color-primary)'} />
+                <Flourish w={titleW} curlW={Math.min(56, titleW)} color="var(--color-accent1)" />
               )}
             </div>
 
@@ -519,6 +535,17 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
                   >
                     {t('send')}
                   </button>
+                )}
+
+                {/* Заглушка отправки — напоминание подключить почту */}
+                {stubShown && (
+                  <span className="t-caption" style={{
+                    marginTop: '10px',
+                    letterSpacing: '0.08em',
+                    color: 'var(--color-error)',
+                  }}>
+                    {t('stub')}
+                  </span>
                 )}
 
                 {isMobile && !isOpen && (
@@ -654,7 +681,15 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
               letterSpacing: '0.09em',
               color: 'var(--color-text-muted)',
             }}>
-              {t('footer.address')}
+              {t('footer.address').split(/\s(?=via\s)/).map((line, i) => (
+                <span key={i} style={{ display: 'block' }}>{line}</span>
+              ))}
+            </span>
+            <span className="t-subtitle" style={{
+              letterSpacing: '0.09em',
+              color: 'var(--color-text-muted)',
+            }}>
+              {t('footer.piva')}
             </span>
             <span className="t-subtitle" style={{
               letterSpacing: '0.09em',
@@ -699,7 +734,7 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
               letterSpacing: '0.32em',
               color: 'var(--color-text-secondary)',
             }}>
-              {t('footer.company')}
+              {t('footer.company')} - {t('footer.piva')}
             </span>
             <span className="t-label normal-case" style={{
               fontStyle: 'italic',

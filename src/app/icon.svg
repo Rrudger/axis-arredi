@@ -1,1 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#c2c2c2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-drill-icon lucide-drill"><path d="M10 18a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H5a3 3 0 0 1-3-3 1 1 0 0 1 1-1z"/><path d="M13 10H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1l-.81 3.242a1 1 0 0 1-.97.758H8"/><path d="M14 4h3a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-3"/><path d="M18 6h4"/><path d="m5 10-2 8"/><path d="m7 18 2-8"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- Фавикон «ласточкин хвост» (соединение двух брусков) — активная вкладка.
+       SVG-фавикон не видит CSS-переменные страницы, цвета заданы литералами
+       из активной темы (taupe-cream): светлая тема = primary-darker #5E5040,
+       тёмная = крем #F0EFEB. Вариант для неактивной вкладки:
+       public/icon-inactive.svg (подменяется в FaviconSwitcher).
+       (В XML-комментарии нельзя писать двойной дефис, поэтому имена
+       переменных здесь без префикса.) -->
+  <style>
+    path { fill: #5E5040; }
+    @media (prefers-color-scheme: dark) {
+      path { fill: #F0EFEB; }
+    }
+  </style>
+  <path d="M2 2 H8 V8 L16 6 V18 L8 16 V22 H2 Z"/>
+  <path d="M10 2 V5.5 L18 3.5 V20.5 L10 18.5 V22 H22 V2 Z"/>
+</svg>

@@ -62,10 +62,12 @@
     "message": "Message",
     "write": "Write to us",
     "send": "Send",
+    "stub": "Stub: submission is not wired up — connect the email service!",
     "footer": {
       "company": "Axis arredi",
       "address": "Italia, Montespertoli (FI), via Chinigiano 10",
       "phone": "+39 380 262 8180",
+      "piva": "P.IVA 07546380481",
       "rights": "© 2024 Axis arredi. All rights reserved."
     }
   }
