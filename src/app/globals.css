@@ -117,7 +117,9 @@ html[lang="ru"] .t-script { font-size: 22px; }
 /* ═══════════════════════════════════════════════════════════════
    ТИПОГРАФИКА — единый ограниченный набор на весь проект.
    Семейство + размер + базовые метрики хранятся ВМЕСТЕ в классе.
-   Два набора: мобильный (по умолчанию) и десктопный (≥1023px).
+   Три набора: мобильный (по умолчанию), десктопный (≥1023px) и
+   компактный (≤360px — бюджетные смартфоны; кегли на 10–20% меньше
+   мобильных, метрики те же; блок «КОМПАКТНЫЙ ЭКРАН» ниже).
    Точечные отклонения трекинга задаются utility-классами Tailwind
    (tracking-[...]) поверх — размеры/семейства в коде не дублируются.
 
@@ -287,6 +289,37 @@ html[lang="ru"] .t-script { font-size: 22px; }
 }
 .cta-button { font-size: 12px; padding: 16px 48px; }
 .contacts-btn-send { font-size: 12px; padding: 15px 44px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   КОМПАКТНЫЙ ЭКРАН (≤360px) — бюджетные смартфоны (360×800 и уже).
+   Третий набор кеглей: все шрифтовые классы на 10–20% меньше
+   мобильных значений. Только font-size — метрики (line-height,
+   letter-spacing) и вёрстка не меняются; экраны >360px не затронуты.
+   Блок стоит ПОСЛЕ всех базовых определений, чтобы выигрывать каскадом.
+═══════════════════════════════════════════════════════════════ */
+@media (max-width: 360px) {
+  .t-hero         { font-size: 24px; }
+  .t-display      { font-size: 22px; }
+  .t-title        { font-size: 16px; }
+  .t-subtitle     { font-size: 12px; }
+  .t-label        { font-size:  9px; }
+  .t-caption      { font-size:  7px; }
+  .t-body         { font-size: 14px; }
+  .t-body-compact { font-size: 14px; }
+  .t-body-sm      { font-size: 10px; }
+  .t-script       { font-size: 24px; }
+  /* ru: кириллический Great Vibes (см. «РУССКАЯ ЛОКАЛИЗАЦИЯ») */
+  html[lang="ru"] .t-script { font-size: 19px; }
+
+  /* Форма контактов и CTA — те же −10–15% */
+  .contacts-title    { font-size: clamp(19px, 6vw, 26px); }
+  .contacts-subtitle { font-size: 13px; }
+  .contacts-label    { font-size: 10px; }
+  .contacts-input    { font-size: 15px; }
+  .contacts-textarea { font-size: 15px; }
+  .cta-button        { font-size: 11px; }
+  .contacts-btn-send { font-size: 11px; }
+}
 
 @media (hover: hover) {
   .cta-button:hover,

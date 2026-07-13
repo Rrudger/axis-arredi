@@ -68,7 +68,33 @@
       "address": "Italia, Montespertoli (FI), via Chinigiano 10",
       "phone": "+39 380 262 8180",
       "piva": "P.IVA 07546380481",
-      "rights": "© 2024 Axis arredi. All rights reserved."
+      "rights": "© 2024 Axis arredi. All rights reserved.",
+      "privacy": "Privacy & Cookie Policy"
+    }
+  },
+  "privacy": {
+    "title": "Privacy & Cookie Policy",
+    "updated": "Last updated: July 2026",
+    "back": "Back to the site",
+    "owner": {
+      "heading": "Data controller",
+      "body": "Axis arredi — P.IVA 07546380481, Italia, Montespertoli (FI), via Chinigiano 10. For any request concerning personal data, write to axisarredamenti@axis.it or call +39 380 262 8180."
+    },
+    "cookies": {
+      "heading": "Cookies",
+      "body": "This website does not use profiling, analytics or advertising cookies. The only cookie present is the technical cookie NEXT_LOCALE, set only when you manually choose the site language and used exclusively to remember that preference. As a strictly necessary cookie it does not require consent — which is why the site shows no cookie banner."
+    },
+    "map": {
+      "heading": "Google map",
+      "body": "The contacts section embeds a Google Maps map. When the map loads, Google LLC may collect technical data (such as your IP address) according to its own privacy policy, available at policies.google.com."
+    },
+    "hosting": {
+      "heading": "Hosting",
+      "body": "The website is hosted by Vercel Inc. The servers automatically record in technical logs the data required for the operation and security of the service (IP address, requests, date and time). This data is not used to identify visitors, nor is it combined with other sources."
+    },
+    "rights": {
+      "heading": "Your rights",
+      "body": "Under Regulation (EU) 2016/679 (GDPR) you have the right to access your data, request its rectification or erasure, restrict or object to its processing. To exercise these rights, write to axisarredamenti@axis.it. You also have the right to lodge a complaint with the Italian data protection authority (Garante per la protezione dei dati personali)."
     }
   }
 }
