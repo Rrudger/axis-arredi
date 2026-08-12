@@ -62,7 +62,30 @@
     "message": "Message",
     "write": "Write to us",
     "send": "Send",
-    "stub": "Stub: submission is not wired up — connect the email service!",
+    "sending": "Sending…",
+    "status": {
+      "close": "Close",
+      "success": {
+        "title": "Message sent",
+        "text": "Thank you for writing to us. We will get back to you shortly."
+      },
+      "validation": {
+        "title": "Check the fields",
+        "text": "Please fill in name, email and message — the address must be valid."
+      },
+      "rate": {
+        "title": "Too many attempts",
+        "text": "Several messages were sent in a row. Please try again in a few minutes."
+      },
+      "config": {
+        "title": "Sending unavailable",
+        "text": "Sending from the site is not possible right now. Please write to info@axisarredi.it."
+      },
+      "error": {
+        "title": "Sending failed",
+        "text": "Something went wrong. Please try again or write to info@axisarredi.it."
+      }
+    },
     "footer": {
       "company": "Axis arredi",
       "address": "Italia, Montespertoli (FI), via Chinigiano 10",
@@ -78,7 +101,7 @@
     "back": "Back to the site",
     "owner": {
       "heading": "Data controller",
-      "body": "Axis arredi — P.IVA 07546380481, Italia, Montespertoli (FI), via Chinigiano 10. For any request concerning personal data, write to axisarredamenti@axis.it or call +39 380 262 8180."
+      "body": "Axis arredi — P.IVA 07546380481, Italia, Montespertoli (FI), via Chinigiano 10. For any request concerning personal data, write to info@axisarredi.it or call +39 380 262 8180."
     },
     "cookies": {
       "heading": "Cookies",
@@ -94,7 +117,7 @@
     },
     "rights": {
       "heading": "Your rights",
-      "body": "Under Regulation (EU) 2016/679 (GDPR) you have the right to access your data, request its rectification or erasure, restrict or object to its processing. To exercise these rights, write to axisarredamenti@axis.it. You also have the right to lodge a complaint with the Italian data protection authority (Garante per la protezione dei dati personali)."
+      "body": "Under Regulation (EU) 2016/679 (GDPR) you have the right to access your data, request its rectification or erasure, restrict or object to its processing. To exercise these rights, write to info@axisarredi.it. You also have the right to lodge a complaint with the Italian data protection authority (Garante per la protezione dei dati personali)."
     }
   }
 }

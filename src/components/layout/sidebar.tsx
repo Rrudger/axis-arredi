@@ -106,7 +106,7 @@ export default function Sidebar({ selected, switchSection }:
 
   return (
     <>
-    <div className={clsx(`fixed z-50
+    <div id="mobileMenu" className={clsx(`fixed z-50
       bottom-0 left-1/2 -translate-x-1/2 w-[85vw] mb-3 rounded-2xl
       desktop:bottom-auto desktop:left-auto desktop:right-0 desktop:top-1/2 desktop:mb-0 desktop:rounded-none
       desktop:mr-8 desktop:w-auto desktop:translate-x-0 desktop:-translate-y-1/2

@@ -55,4 +55,7 @@
 
 Next.js 16 (App Router) · React 19 · Tailwind **v4** (конфиг через CSS `@theme`,
 файла `tailwind.config.ts` нет) · next-intl. Брейкпоинт десктопа — `1023px`
-(`--breakpoint-desktop`, Tailwind-вариант `desktop:`).
+(`--breakpoint-desktop`, Tailwind-вариант `desktop:`). Десктоп делится на
+узкий (1023–1299px, планшеты в альбоме) и полный (≥1300px,
+`--breakpoint-desktop-full`, вариант `desktop-full:`); широкий — от
+`--breakpoint-wide` (`1700px`).

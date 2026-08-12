@@ -1,6 +1,7 @@
 'use client';
 
 import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
@@ -22,6 +23,8 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
   const [waOpen,    setWaOpen]    = useState(false);
   const [copied,    setCopied]    = useState(false);
   const waRef = useRef<HTMLDivElement>(null);
+  const privacyLinkRef = useRef<HTMLAnchorElement>(null);
+  const [privacyOffsetY, setPrivacyOffsetY] = useState(0);
 
   useLayoutEffect(() => {
     const update = () => { setWindowW(window.innerWidth); setWindowH(window.innerHeight); };
@@ -43,19 +46,71 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
     ? Math.atan2(windowH, windowW) * (180 / Math.PI)
     : 65;
 
-  // Заглушка вместо отправки: показывает напоминание, что почтовый сервис
-  // ещё не подключён. Убрать вместе с contacts.stub из messages/*, когда
-  // появится настоящая submission logic.
-  const [stubShown, setStubShown] = useState(false);
-  const stubTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (stubTimer.current) clearTimeout(stubTimer.current); }, []);
+  // ── Отправка формы ──────────────────────────────────────────────
+  // Уходит на /api/contact, оттуда письмом на info@axisarredi.it.
+  // Ключ статуса совпадает с ключом в contacts.status.* (messages/*.json).
+  type StatusKey = 'success' | 'validation' | 'rate' | 'config' | 'error';
+  const [sending, setSending] = useState(false);
+  const [status, setStatus] = useState<StatusKey | null>(null);
+  // Honeypot: поле спрятано от людей, заполнить его может только бот —
+  // такие заявки сервер молча отбрасывает.
+  const [company, setCompany] = useState('');
+  // Результат показывается модальным окном (см. ниже) — оно перекрывает всё
+  // и закрывается вручную, поэтому таймера на скрытие нет.
+  const showStatus = (key: StatusKey) => setStatus(key);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStubShown(true);
-    if (stubTimer.current) clearTimeout(stubTimer.current);
-    stubTimer.current = setTimeout(() => setStubShown(false), 5000);
+    if (sending) return;
+
+    // Те же правила, что на сервере: пустое поле не гоняем по сети.
+    if (!name.trim() || !message.trim() || !/^[^\s@]+@[^\s@,]+\.[a-z]{2,}$/i.test(email.trim())) {
+      showStatus('validation');
+      return;
+    }
+
+    setStatus(null);
+    setSending(true);
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, message, company }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
+        showStatus('success');
+        setName(''); setEmail(''); setMessage('');
+      } else {
+        const key = data.error as string;
+        showStatus(key === 'validation' || key === 'rate' || key === 'config' ? key : 'error');
+      }
+    } catch {
+      // Сеть недоступна / запрос оборвался.
+      showStatus('error');
+    } finally {
+      setSending(false);
+    }
   };
+
+  // Модалка результата: Esc закрывает; колесо и свайп по подложке не прокручивают
+  // страницу под окном (скролл сайта нативный, поэтому гасим события сами —
+  // с passive:false, иначе preventDefault игнорируется).
+  const modalRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!status) return;
+    const el = modalRef.current;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setStatus(null); };
+    const stop = (e: Event) => e.preventDefault();
+    document.addEventListener('keydown', onKey);
+    el?.addEventListener('wheel', stop, { passive: false });
+    el?.addEventListener('touchmove', stop, { passive: false });
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      el?.removeEventListener('wheel', stop);
+      el?.removeEventListener('touchmove', stop);
+    };
+  }, [status]);
 
   // Телефон для WhatsApp: тот же номер, что в футере, без пробелов и «+».
   const phone   = t('footer.phone');
@@ -180,6 +235,45 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
       io.disconnect();
     };
   }, [windowW, windowH, isMobile, isOpen]);
+
+  // Ссылка privacy (мобайл, закрытое состояние) прижимается к низу экрана:
+  // её низ держится на 20px выше фиксированного нижнего меню
+  // (#mobileMenu — отдельный компонент вне этого дерева, поэтому меряем его
+  // через DOM). Сдвиг — position:relative + top: он не влияет на поток, так
+  // что раскладка блока выше (кнопка, лого, слоган, иконки) не едет; менять
+  // маргины нельзя — они делят свободное место через marginTop:auto.
+  useEffect(() => {
+    if (!isMobile || isOpen) return;
+    const measure = () => {
+      const link = privacyLinkRef.current;
+      const menu = document.getElementById('mobileMenu');
+      if (!link || !menu) return;
+      // Ссылка появляется с анимацией по translateY — она входит в rect,
+      // поэтому вычитаем её, иначе замер в середине анимации промахнётся.
+      const shift = new DOMMatrixReadOnly(getComputedStyle(link).transform).f;
+      const linkBottom = link.getBoundingClientRect().bottom - shift;
+      const menuTop = menu.getBoundingClientRect().top;
+      // top уже учтён в rect, поэтому корректируем накопительно.
+      setPrivacyOffsetY((prev) => {
+        const next = prev + (menuTop - 20 - linkBottom);
+        return Math.abs(next - prev) < 0.5 ? prev : next;
+      });
+    };
+    requestAnimationFrame(measure);
+    document.fonts?.ready.then(measure);
+    // Финальный замер после появления ссылки (анимация: задержка 0.6s + 0.5s).
+    const afterAnimation = setTimeout(measure, 1200);
+    const menu = document.getElementById('mobileMenu');
+    const ro = new ResizeObserver(measure);
+    if (menu) ro.observe(menu);
+    if (privacyLinkRef.current) ro.observe(privacyLinkRef.current);
+    window.addEventListener('resize', measure);
+    return () => {
+      clearTimeout(afterAnimation);
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [isMobile, isOpen, windowW, windowH, mounted]);
 
   useEffect(() => {
     if (isMobile || isSmall) return;
@@ -350,7 +444,7 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
                   color: 'var(--color-text-muted)',
                   whiteSpace: 'nowrap',
                 }}>
-                  axisarredamenti@axis.it
+                  info@axisarredi.it
                 </span>
                 <Link href="/privacy" className="t-label normal-case" style={{
                   letterSpacing: '0.09em',
@@ -531,6 +625,27 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
               />
             </div>
 
+            {/* Honeypot — приманка для ботов. Скрыт от людей и от скринридеров,
+                исключён из табуляции и автозаполнения; если пришёл непустым,
+                сервер считает заявку спамом. */}
+            <input
+              type="text"
+              name="company"
+              value={company}
+              onChange={e => setCompany(e.target.value)}
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              style={{
+                position: 'absolute',
+                width: '1px',
+                height: '1px',
+                opacity: 0,
+                pointerEvents: 'none',
+                left: '-9999px',
+              }}
+            />
+
             {/* Кнопка */}
             <div style={{
               display: 'flex',
@@ -553,27 +668,22 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
                 ) : (
                   <button
                     type="submit"
+                    disabled={sending}
                     className="contacts-btn-send"
                     style={{
                       marginLeft: isMobile && isOpen ? 'auto' : undefined,
                       transition: mounted && isMobile ? 'margin-left 0.85s cubic-bezier(0.77,0,0.18,1)' : undefined,
+                      ...(sending ? { opacity: 0.6, cursor: 'progress' } : {}),
                       ...(!isMobile && !isSmall ? { width: `calc((min(${isSmallDesktop ? '46vw, 518px' : '51vw, 575px'}) - 32px) / 2)`, textAlign: 'center', padding: '12px 0' } : {}),
                     }}
                   >
-                    {t('send')}
+                    {sending ? t('sending') : t('send')}
                   </button>
                 )}
 
-                {/* Заглушка отправки — напоминание подключить почту */}
-                {stubShown && (
-                  <span className="t-caption" style={{
-                    marginTop: '10px',
-                    letterSpacing: '0.08em',
-                    color: 'var(--color-error)',
-                  }}>
-                    {t('stub')}
-                  </span>
-                )}
+                {/* Результат отправки — модальным окном (см. конец файла).
+                    В потоке формы его нет намеренно: строка статуса шире
+                    кнопки, и та уезжала вправо из-за marginLeft:auto. */}
 
                 {isMobile && !isOpen && (
                   <>
@@ -661,7 +771,7 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
                         под нижнее меню. >360: marginTop:auto в паре с auto у
                         иконок делит свободное место поровну — зазор privacy↔
                         иконки равен зазору иконки↔блок выше. */}
-                    <Link href="/privacy" className="t-label normal-case" style={{
+                    <Link ref={privacyLinkRef} href="/privacy" className="t-label normal-case" style={{
                       marginTop: windowW > 360 ? 'auto' : undefined,
                       letterSpacing: '0.12em',
                       color: 'var(--color-text-muted)',
@@ -669,6 +779,8 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
                       textUnderlineOffset: '2px',
                       width: 'fit-content',
                       marginBottom: 'min(calc(32% - 1px), 146px)',
+                      position: 'relative',
+                      top: `${privacyOffsetY}px`,
                       zIndex: 10,
                       animation: mounted ? 'social-icons-in 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.6s both' : undefined,
                     }}>
@@ -764,7 +876,7 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
               letterSpacing: '0.09em',
               color: 'var(--color-text-muted)',
             }}>
-              axisarredamenti@axis.it
+              info@axisarredi.it
             </span>
 
           </div>}
@@ -804,7 +916,7 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
               letterSpacing: '0.08em',
               color: 'var(--color-text-muted)',
             }}>
-              {t('footer.address')} · {t('footer.phone')} · axisarredamenti@axis.it
+              {t('footer.address')} · {t('footer.phone')} · info@axisarredi.it
             </span>
           </div>
         )}
@@ -867,6 +979,14 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
         @keyframes wa-pop-in {
           from { opacity: 0; transform: translateX(-50%) translateY(4px); }
           to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        @keyframes modal-fade-in {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        @keyframes modal-panel-in {
+          from { opacity: 0; transform: translateY(12px) scale(0.98); }
+          to   { opacity: 1; transform: translateY(0)    scale(1); }
         }
       `}</style>
       <div id="map" style={{
@@ -1027,6 +1147,109 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
             </svg>
           </div>
         </div>
+      )}
+
+      {/* ── Модальное окно результата отправки ──────────────────────────
+          Портал в body: у верхнего треугольника (#contacts) стоит clip-path,
+          а он режет даже position:fixed-потомков. Клик по подложке, крестик,
+          кнопка и Esc — все закрывают окно. */}
+      {mounted && status && createPortal(
+        <div
+          ref={modalRef}
+          onClick={() => setStatus(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 100,   // выше мобильного меню (z-50) и всех слоёв секции
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+            background: 'color-mix(in srgb, var(--color-ink) 55%, transparent)',
+            WebkitBackdropFilter: 'blur(6px)',
+            backdropFilter: 'blur(6px)',
+            animation: 'modal-fade-in 0.25s ease',
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="contactsModalTitle"
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'relative',
+              width: '100%',
+              maxWidth: '420px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+              padding: isCompact ? '34px 24px 28px' : '44px 36px 36px',
+              background: 'var(--color-primary-bg)',
+              border: '1px solid var(--color-border)',
+              boxShadow: '0 24px 64px var(--color-shadow)',
+              animation: 'modal-panel-in 0.35s cubic-bezier(0.34,1.56,0.64,1)',
+            }}
+          >
+            {/* Крестик */}
+            <button
+              type="button"
+              onClick={() => setStatus(null)}
+              aria-label={t('status.close')}
+              style={{
+                position: 'absolute',
+                top: '10px',
+                right: '10px',
+                display: 'flex',
+                padding: '8px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                opacity: 0.45,
+                lineHeight: 0,
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M6 6l12 12M18 6L6 18" stroke="var(--color-text-secondary)" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </button>
+
+            <span
+              id="contactsModalTitle"
+              className={isCompact ? 't-subtitle uppercase' : 't-title uppercase'}
+              style={{
+                letterSpacing: '0.2em',
+                color: status === 'success' ? 'var(--color-text-secondary)' : 'var(--color-error)',
+              }}
+            >
+              {t(`status.${status}.title`)}
+            </span>
+
+            {/* Та же виньетка, что под заголовком формы */}
+            <div style={{ margin: isCompact ? '14px 0 16px' : '18px 0 20px' }}>
+              <Flourish
+                w={isCompact ? 140 : 170}
+                curlW={56}
+                color={status === 'success' ? 'var(--color-accent1)' : 'var(--color-error)'}
+              />
+            </div>
+
+            {/* t-body (а не t-body-sm): текст окна должен читаться без прищура.
+                Цвет — свой у класса, --color-text-primary, не переопределяем. */}
+            <span className="t-body" style={{ maxWidth: '30ch' }}>
+              {t(`status.${status}.text`)}
+            </span>
+
+            <CtaButton
+              type="button"
+              onClick={() => setStatus(null)}
+              style={{ marginTop: isCompact ? '24px' : '30px' }}
+            >
+              {t('status.close')}
+            </CtaButton>
+          </div>
+        </div>,
+        document.body,
       )}
 
     </div>

@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...кроме образца без секретов — он нужен в репозитории
+!.env.example
 
 # vercel
 .vercel

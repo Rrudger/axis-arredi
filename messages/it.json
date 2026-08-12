@@ -62,7 +62,30 @@
     "message": "Messaggio",
     "write": "Scrivici",
     "send": "Invia",
-    "stub": "Placeholder: invio non collegato — collegare la posta!",
+    "sending": "Invio…",
+    "status": {
+      "close": "Chiudi",
+      "success": {
+        "title": "Messaggio inviato",
+        "text": "Grazie per averci scritto. Ti risponderemo al più presto."
+      },
+      "validation": {
+        "title": "Controlla i campi",
+        "text": "Compila nome, email e messaggio: l'indirizzo deve essere valido."
+      },
+      "rate": {
+        "title": "Troppi invii",
+        "text": "Hai inviato più messaggi ravvicinati. Riprova tra qualche minuto."
+      },
+      "config": {
+        "title": "Invio non disponibile",
+        "text": "Al momento non è possibile inviare dal sito. Scrivici a info@axisarredi.it."
+      },
+      "error": {
+        "title": "Invio non riuscito",
+        "text": "Qualcosa è andato storto. Riprova o scrivici a info@axisarredi.it."
+      }
+    },
     "footer": {
       "company": "Axis arredi",
       "address": "Italia, Montespertoli (FI), via Chinigiano 10",
@@ -78,7 +101,7 @@
     "back": "Torna al sito",
     "owner": {
       "heading": "Titolare del trattamento",
-      "body": "Axis arredi — P.IVA 07546380481, Italia, Montespertoli (FI), via Chinigiano 10. Per qualsiasi richiesta relativa ai dati personali puoi scrivere a axisarredamenti@axis.it o chiamare il +39 380 262 8180."
+      "body": "Axis arredi — P.IVA 07546380481, Italia, Montespertoli (FI), via Chinigiano 10. Per qualsiasi richiesta relativa ai dati personali puoi scrivere a info@axisarredi.it o chiamare il +39 380 262 8180."
     },
     "cookies": {
       "heading": "Cookie",
@@ -94,7 +117,7 @@
     },
     "rights": {
       "heading": "I tuoi diritti",
-      "body": "Ai sensi del Regolamento (UE) 2016/679 (GDPR) hai il diritto di accedere ai tuoi dati, chiederne la rettifica o la cancellazione, limitarne il trattamento od opporti allo stesso. Per esercitare questi diritti scrivi a axisarredamenti@axis.it. Hai inoltre il diritto di proporre reclamo al Garante per la protezione dei dati personali."
+      "body": "Ai sensi del Regolamento (UE) 2016/679 (GDPR) hai il diritto di accedere ai tuoi dati, chiederne la rettifica o la cancellazione, limitarne il trattamento od opporti allo stesso. Per esercitare questi diritti scrivi a info@axisarredi.it. Hai inoltre il diritto di proporre reclamo al Garante per la protezione dei dati personali."
     }
   }
 }
