@@ -7,26 +7,134 @@ import { useTranslations } from 'next-intl';
 import CtaButton from '@/components/ui/cta-button';
 import Flourish from '@/components/ui/flourish';
 
-const TOTAL = 2;
+const TOTAL = 4;
 const TOTAL_STR = String(TOTAL).padStart(2, '0');
+
+// «Rubio Monocoat» в любом описании — ссылка на официальный сайт бренда в Италии.
+// Разбиваем строку по имени бренда и подменяем совпадения на <a>.
+const RUBIO_URL = 'https://www.rubiomonocoat.it/';
+const linkRubio = (text: string) =>
+  text.split(/(Rubio Monocoat)/g).map((part, i) =>
+    part === 'Rubio Monocoat' ? (
+      <a
+        key={i}
+        className="s3-link"
+        href={RUBIO_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={e => e.stopPropagation()}
+      >
+        {part}
+      </a>
+    ) : (
+      part
+    ),
+  );
+
+type MediaItem = { src: string; type: 'image' | 'video' };
+
+// Один слой карусели — фото или видео, одинаково растянутые на слот.
+// Видео проигрывается, только пока оно в крупном слоте (active): muted + loop +
+// playsInline обязательны, иначе браузер не разрешит автостарт без клика. Пока
+// оно в миниатюре, грузится только метаданные — виден первый кадр, а сам поток
+// не качается. Уходя из крупного, перематываем на начало, чтобы при следующем
+// показе видео начиналось сначала.
+const MediaLayer = ({ item, active, sizes, priority, objectPosition = 'left center', onRatio }: {
+  item: MediaItem;
+  active: boolean;
+  sizes: string;
+  priority?: boolean;
+  objectPosition?: string;
+  onRatio?: (landscape: boolean) => void;
+}) => {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  // Вертикальное видео в широком слоте показываем целиком (contain): кадр из
+  // такой съёмки нельзя обрезать до полосы, как фото, — от него ничего не
+  // останется. Горизонтальное ведёт себя как фото (cover).
+  const [portrait, setPortrait] = useState(false);
+  // Клик по играющему видео — пауза и нативные контролы (плей, перемотка,
+  // громкость, полный экран). Дальше кликами рулит уже сам плеер: свой
+  // обработчик отключаем, иначе тап по кнопке плеера дошёл бы и до нас и сразу
+  // ставил бы обратно на паузу. Контролы держим до ухода из крупного слота.
+  const [controls, setControls] = useState(false);
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    if (active) el.play().catch(() => {});
+    else { el.pause(); el.currentTime = 0; setControls(false); }
+  }, [active]);
+
+  if (item.type === 'video') {
+    return (
+      <video
+        ref={videoRef}
+        src={item.src}
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        controls={controls}
+        onClick={active && !controls ? e => {
+          e.stopPropagation();
+          videoRef.current?.pause();
+          setControls(true);
+        } : undefined}
+        onLoadedMetadata={e => {
+          const landscape = e.currentTarget.videoWidth > e.currentTarget.videoHeight;
+          setPortrait(!landscape);
+          onRatio?.(landscape);
+        }}
+        style={{
+          position: 'absolute', inset: 0, width: '100%', height: '100%',
+          objectFit: portrait ? 'contain' : 'cover',
+          objectPosition: portrait ? 'center' : objectPosition,
+          cursor: active && !controls ? 'pointer' : 'default',
+        }}
+      />
+    );
+  }
+
+  return (
+    <Image
+      src={item.src}
+      alt=""
+      fill
+      sizes={sizes}
+      priority={priority}
+      style={{ objectFit: 'cover', objectPosition }}
+      onLoad={e => onRatio?.(e.currentTarget.naturalWidth > e.currentTarget.naturalHeight)}
+    />
+  );
+};
+
+// Метка «это видео» на миниатюре: треугольник в тонком золотом круге.
+const PlayBadge = ({ size }: { size: number }) => (
+  <svg
+    width={size} height={size} viewBox="0 0 24 24" fill="none"
+    style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', zIndex: 2 }}
+  >
+    <circle cx="12" cy="12" r="11" fill="var(--color-overlay-88)" stroke="var(--color-accent1)" strokeWidth="1" />
+    <path d="M10 8.5l6 3.5-6 3.5V8.5z" fill="var(--color-accent1)" />
+  </svg>
+);
 
 const Projects = forwardRef<HTMLDivElement>((_, ref) => {
   const t = useTranslations('projects');
   const [current, setCurrent] = useState(0);
 
-  // Фото проектов подтягиваются из папок public/images/projects/* на рантайме
+  // Медиа проектов подтягиваются из папок public/images/projects/* на рантайме
   // через API — порядок и состав меняются вслед за файлами, без правок кода.
-  // photos[slide] — отсортированный список src'ов (файл «0…» первый).
-  const [photos, setPhotos] = useState<string[][]>([]);
+  // media[slide] — отсортированный список фото и видео (файл «0…» первый).
+  const [media, setMedia] = useState<MediaItem[][]>([]);
   useEffect(() => {
     let alive = true;
     fetch('/api/project-photos')
       .then(r => r.json())
-      .then((d: { photos: string[][] }) => { if (alive) setPhotos(d.photos ?? []); })
+      .then((d: { media: MediaItem[][] }) => { if (alive) setMedia(d.media ?? []); })
       .catch(() => {});
     return () => { alive = false; };
   }, []);
-  const [offset, setOffset] = useState(0); // индекс верхнего фото видимого окна в curPhotos
+  const [offset, setOffset] = useState(0); // индекс верхнего медиа видимого окна в curMedia
   const [largeHovered, setLargeHovered] = useState(false);
   const [isLandscape, setIsLandscape] = useState<Record<number, boolean>>({});
   const [mobileActive, setMobileActive] = useState(0);
@@ -106,12 +214,12 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
   const prev = () => setCurrent(i => (i - 1 + TOTAL) % TOTAL);
   const next = () => setCurrent(i => (i + 1) % TOTAL);
 
-  // Мобильная навигация листает по кругу по всем фото: индекс 0..n‑1 с
+  // Мобильная навигация листает по кругу по всем медиа: индекс 0..n‑1 с
   // заворотом, поэтому каждый шаг реально сдвигает ленту (нет краёв, где она
   // упирается). mobSwiped гасит ложный тап по превью после свайпа.
   const mobSwiped = useRef(false);
   const mobileGo = (dir: 1 | -1) => {
-    const n = curPhotos.length;
+    const n = curMedia.length;
     if (n === 0) return;
     setMobileDir(dir === 1 ? 'left' : 'right');
     setMobileActive(i => (i + dir + n) % n);
@@ -127,9 +235,9 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
 
   // Наведение на миниатюру (позиция p = 1..3): она уходит в крупное, а окно
   // миниатюр прокручивается на p (обычно на 1 — верхняя), подгружая следующие
-  // фото снизу. Так наведениями доступен весь список папки, а не только 4.
+  // кадры снизу. Так наведениями доступен весь список папки, а не только 4.
   const advance = (p: number) => {
-    const n = curPhotos.length;
+    const n = curMedia.length;
     if (n <= 1 || advanceBlocked.current) return;
     advanceBlocked.current = true;
     expandBlocked.current = true;
@@ -153,11 +261,13 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
   const slides = [
     { title: t('project1.title'), body: t('project1.description') },
     { title: t('project2.title'), body: t('project2.description') },
+    { title: t('project3.title'), body: t('project3.description') },
+    { title: t('project4.title'), body: t('project4.description') },
   ];
 
   const slide = slides[current];
   const num = String(current + 1).padStart(2, '0');
-  const curPhotos = photos[current] ?? [];
+  const curMedia = media[current] ?? [];
 
   // Мобильный пояс превью: окно из 4 миниатюр (активная — на 2‑й позиции),
   // листается по кругу.
@@ -183,8 +293,25 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
           width: 50%;
           padding-left: 0; padding-right: 0;
           text-align: center;
+          flex-shrink: 0;
         }
+        /* Текстовый блок — единственный, кто сжимается, если описание длиннее
+           панели: min-height:0 снимает авто-минимум флекс-элемента, и лишнее
+           уходит в скролл самого текста. Кнопка, точки и стрелки при этом
+           остаются на своих местах (flex-shrink:0), а не выдавливаются за
+           нижний край, где их режет overflow:hidden контейнера. */
+        .s3-panel-content { min-height: 0; display: flex; flex-direction: column; }
         .s3-dot { transition: width 0.3s, background-color 0.3s; }
+        /* Ссылка внутри описания проекта — цвет текста + золотое подчёркивание */
+        .s3-link {
+          color: inherit;
+          text-decoration: underline;
+          text-decoration-thickness: 0.5px;
+          text-decoration-color: var(--color-accent1);
+          text-underline-offset: 3px;
+          transition: color 0.2s;
+        }
+        .s3-link:hover { color: var(--color-accent1); }
 
         /* desktop container padding (mobile = 0) */
         @media (min-width: 1023px) {
@@ -219,7 +346,7 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
         /* min-width:0 — панель держит ровно свою долю (30%), не раздувается длинным
            заголовком; иначе неразрывный t-display ломает соотношение и клипует фото */
         .s3-panel    { flex: 1; min-width: 0; padding: 40px 0 0 0; }
-        .s3-body     { line-height: 2.0; }
+        .s3-body     { line-height: 1.85; min-height: 0; overflow-y: auto; }
 
         /* desktop (1023px – 1699px) */
         @media (max-width: 1699px) {
@@ -249,7 +376,7 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
             height: '0.5px', background: 'var(--color-accent1)', opacity: 0.25,
           }} />
 
-          <div key={`s3-panel-${current}`} className="s3-slide-in">
+          <div key={`s3-panel-${current}`} className="s3-slide-in s3-panel-content">
             <div className="s3-title t-display" style={{
               color: 'var(--color-primary)',
               marginBottom: '20px',
@@ -267,7 +394,7 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
             <div className="s3-body t-body-compact" style={{
               display: 'flex', flexDirection: 'column', gap: '16px',
             }}>
-              {slide.body.split('\n\n').map((p, i) => <p key={i}>{p}</p>)}
+              {slide.body.split('\n\n').map((p, i) => <p key={i}>{linkRubio(p)}</p>)}
             </div>
           </div>
 
@@ -283,7 +410,7 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
 
           {/* Нижний блок прижат к низу панели; padding-bottom панели = 0, поэтому
              последняя строка (стрелки + номер) выравнивается с нижним краем фото. */}
-          <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ marginTop: 'auto', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               {Array.from({ length: TOTAL }, (_, i) => (
                 <span key={i} onClick={() => setCurrent(i)} className="s3-dot" style={{
@@ -333,10 +460,10 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
         {/* Image zone — RIGHT */}
         <div className="s3-img-zone" style={{ position: 'relative', overflow: 'hidden', background: 'var(--color-white)' }}>
 
-          {/* Все фото проекта — постоянные слои; позиция считается из offset.
+          {/* Все медиа проекта — постоянные слои; позиция считается из offset.
              p: 0 — крупное, 1‑3 — миниатюры, ≥4 — припарковано снизу (не видно). */}
-          {curPhotos.map((src, photoIdx) => {
-            const n = curPhotos.length;
+          {curMedia.map((item, photoIdx) => {
+            const n = curMedia.length;
             const p = (photoIdx - offset + n) % n;
             const isLarge = p === 0;
             const isThumb = p >= 1 && p <= 3;
@@ -344,9 +471,9 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
             const pos = isLarge ? (largeHovered ? FULL_POS : IMG_SLOT_POS[0])
               : isThumb ? IMG_SLOT_POS[p]
               : PARKED_POS;
-            // Картинку грузим только у видимых, у следующего входящего (p===4)
+            // Медиа грузим только у видимых, у следующего входящего (p===4)
             // и у только что ушедшего крупного (p===n‑1) — остальные пустые.
-            const showImg = p <= 4 || p === n - 1;
+            const showMedia = p <= 4 || p === n - 1;
 
             return (
               <div
@@ -369,19 +496,17 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
                 onClick={isThumb ? () => advance(p) : undefined}
                 onTransitionEnd={isLarge ? () => { expandBlocked.current = false; } : undefined}
               >
-                {showImg && (
-                  <Image
-                    src={src}
-                    alt=""
-                    fill
-                    sizes="60vw"
-                    style={{ objectFit: 'cover', objectPosition: 'left center' }}
-                    priority={photoIdx === 0}
-                    onLoad={e => {
-                      const img = e.currentTarget as HTMLImageElement;
-                      setIsLandscape(prev => ({ ...prev, [photoIdx]: img.naturalWidth > img.naturalHeight }));
-                    }}
-                  />
+                {showMedia && (
+                  <>
+                    <MediaLayer
+                      item={item}
+                      active={isLarge}
+                      sizes="60vw"
+                      priority={photoIdx === 0 && item.type === 'image'}
+                      onRatio={landscape => setIsLandscape(prev => ({ ...prev, [photoIdx]: landscape }))}
+                    />
+                    {item.type === 'video' && isThumb && <PlayBadge size={22} />}
+                  </>
                 )}
               </div>
             );
@@ -426,9 +551,9 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
               className={mobileDir === 'left' ? 's3-m-in-left' : 's3-m-in-right'}
               style={{ position: 'absolute', inset: 0 }}
             >
-              {curPhotos[mobileActive] ? (
-                <Image src={curPhotos[mobileActive]} alt="" fill sizes="100vw"
-                  style={{ objectFit: 'cover' }} priority />
+              {curMedia[mobileActive] ? (
+                <MediaLayer item={curMedia[mobileActive]} active sizes="100vw"
+                  objectPosition="center" priority={curMedia[mobileActive].type === 'image'} />
               ) : (
                 <div style={{ width: '100%', height: '100%', background: IMG_COLORS[mobileActive % IMG_COLORS.length],
                   display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -452,8 +577,8 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
                 setTouchStart(null);
               }}
             >
-              {curPhotos.length > 0 && Array.from({ length: Math.min(M_VISIBLE, curPhotos.length) }, (_, slot) => {
-                const idx = (mobileActive - 1 + slot + curPhotos.length) % curPhotos.length;
+              {curMedia.length > 0 && Array.from({ length: Math.min(M_VISIBLE, curMedia.length) }, (_, slot) => {
+                const idx = (mobileActive - 1 + slot + curMedia.length) % curMedia.length;
                 const active = idx === mobileActive;
                 return (
                   <button
@@ -468,7 +593,8 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
                         : '1.5px solid color-mix(in srgb, var(--color-primary-border) 50%, transparent)',
                     }}
                   >
-                    <Image src={curPhotos[idx]} alt="" fill sizes="25vw" style={{ objectFit: 'cover' }} />
+                    <MediaLayer item={curMedia[idx]} active={false} sizes="25vw" objectPosition="center" />
+                    {curMedia[idx].type === 'video' && <PlayBadge size={18} />}
                   </button>
                 );
               })}
@@ -502,7 +628,7 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
             onClick={expanded ? () => setExpanded(false) : undefined}
             style={{ flex: 1, minHeight: 0, overflow: expanded ? 'auto' : 'hidden', position: 'relative', whiteSpace: 'pre-line', cursor: expanded ? 'pointer' : 'default' }}
           >
-            {slide.body}
+            {linkRubio(slide.body)}
             {!expanded && truncated && (
               <>
                 {/* заглушка прячет обрезанную нижнюю строку — текст кончается на полной */}
