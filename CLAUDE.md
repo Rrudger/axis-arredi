@@ -58,4 +58,7 @@ Next.js 16 (App Router) · React 19 · Tailwind **v4** (конфиг через 
 (`--breakpoint-desktop`, Tailwind-вариант `desktop:`). Десктоп делится на
 узкий (1023–1299px, планшеты в альбоме) и полный (≥1300px,
 `--breakpoint-desktop-full`, вариант `desktop-full:`); широкий — от
-`--breakpoint-wide` (`1700px`).
+`--breakpoint-wide` (`1700px`). Планшет в портрете — `744px`
+(`--breakpoint-tablet`, вариант `tablet:`), диапазон 744–1022px: покрывает
+iPad mini (744), iPad 9.7 (768), Android/Galaxy Tab (800), iPad 10.2 (810),
+iPad Air и iPad 10/11 (820), iPad Pro 11 (834).

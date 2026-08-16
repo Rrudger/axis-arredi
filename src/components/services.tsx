@@ -284,6 +284,25 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
         @media (max-width: 1022px) {
           .svc2-section { padding: 0; }
         }
+
+        /* Мобильная карусель: единственный источник размера — диаметр
+           активного круга. Всё остальное (кольцо, круги-призраки, их сдвиг
+           за край, позиция заголовка и стрелок, ширина текста) считается
+           от него долями, поэтому композиция масштабируется целиком. */
+        .svc2-mob {
+          --svc2-mob-d: 90vw;              /* активный круг */
+          --svc2-mob-ring: calc(var(--svc2-mob-d) * 1.0667);  /* пунктирное кольцо */
+          --svc2-mob-ghost: calc(var(--svc2-mob-d) * 0.9);    /* соседние круги */
+          --svc2-mob-off: calc(var(--svc2-mob-d) * 0.2222);   /* их вынос за угол */
+        }
+        /* Планшет в портрете (744–1022px, = --breakpoint-tablet; в @media
+           var() не работает — граница числом). Круги мельче на 28%
+           (90 → 72 → 64.8vw, два последовательных шага −20% и −10%): при
+           ширине 744–1022px 90vw давало круг под 900px, он упирался в
+           высоту экрана. Кегли не трогаем — меняется только геометрия. */
+        @media (min-width: 744px) and (max-width: 1022px) {
+          .svc2-mob { --svc2-mob-d: 64.8vw; }
+        }
       `}</style>
 
       {/* ── Desktop + wide: segmented donut diagram ── */}
@@ -408,7 +427,7 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
 
       {/* ── Mobile: circle carousel ── */}
       <div
-        className="desktop:hidden absolute inset-0 flex items-center justify-center overflow-hidden"
+        className="svc2-mob desktop:hidden absolute inset-0 flex items-center justify-center overflow-hidden"
         onTouchStart={e => setMobTouchX(e.touches[0].clientX)}
         onTouchEnd={e => {
           if (mobTouchX === null) return;
@@ -421,9 +440,9 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
         {/* Top-left ghost (prev card) */}
         <div style={{
           position: 'absolute',
-          width: '81vw', height: '81vw', borderRadius: '50%',
+          width: 'var(--svc2-mob-ghost)', height: 'var(--svc2-mob-ghost)', borderRadius: '50%',
           border: '8px solid color-mix(in srgb, var(--color-primary) 30%, transparent)',
-          top: '-20vw', left: '-20vw',
+          top: 'calc(-1 * var(--svc2-mob-off))', left: 'calc(-1 * var(--svc2-mob-off))',
           background: 'var(--color-primary-bg)', zIndex: 1,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           overflow: 'hidden',
@@ -440,8 +459,10 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
                 /* Service 1: the circle is offset off-screen top-left, so its
                    top-left corner (where object-position 'left top' pins the
                    image) is hidden. Push the image down-right into the visible
-                   arc; the gap this opens stays in the off-screen 20vw corner. */
-                transform: mobileActive === 0 ? 'translate(18vw, 18vw)' : undefined,
+                   arc; the gap this opens stays in the off-screen corner. */
+                transform: mobileActive === 0
+                  ? 'translate(calc(var(--svc2-mob-d) * 0.2), calc(var(--svc2-mob-d) * 0.2))'
+                  : undefined,
               }}
             />
           )}
@@ -450,9 +471,9 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
         {/* Bottom-right ghost (next card) */}
         <div style={{
           position: 'absolute',
-          width: '81vw', height: '81vw', borderRadius: '50%',
+          width: 'var(--svc2-mob-ghost)', height: 'var(--svc2-mob-ghost)', borderRadius: '50%',
           border: '8px solid color-mix(in srgb, var(--color-primary) 30%, transparent)',
-          bottom: '-20vw', right: '-20vw',
+          bottom: 'calc(-1 * var(--svc2-mob-off))', right: 'calc(-1 * var(--svc2-mob-off))',
           background: 'var(--color-primary-bg)', zIndex: 1,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           overflow: 'hidden',
@@ -465,7 +486,7 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
         {/* Number + Title — top-right, anchored above the circle */}
         <div style={{
           position: 'absolute',
-          bottom: 'calc(50% + 45vw + 24px)', right: 'calc(5vw + 8px)',
+          bottom: 'calc(50% + var(--svc2-mob-d) / 2 + 24px)', right: 'calc(5vw + 8px)',
           width: 'calc(100vw / 3 + 16px)',
           display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
           gap: 'calc(5vw + 8px)',
@@ -495,7 +516,7 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
           style={{
             position: 'absolute', left: '50%', top: '50%',
             transform: 'translate(-50%, -50%)',
-            width: '96vw', height: '96vw',
+            width: 'var(--svc2-mob-ring)', height: 'var(--svc2-mob-ring)',
             zIndex: 2, pointerEvents: 'none',
           }}
         >
@@ -515,14 +536,16 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
           className="svc2-mobcircle"
           style={{
             position: 'relative', zIndex: 2,
-            width: '90vw', height: '90vw', borderRadius: '50%',
+            width: 'var(--svc2-mob-d)', height: 'var(--svc2-mob-d)', borderRadius: '50%',
             border: '8px solid var(--color-primary)',
             background: 'var(--color-primary-bg)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             overflow: 'hidden',
           }}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: '62vw', gap: '18px' }}>
+          {/* Ширина текстового блока — доля диаметра (была 62vw при круге 90vw),
+              чтобы на планшете текст остался внутри круга без правки кегля. */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 'calc(var(--svc2-mob-d) * 0.689)', gap: '18px' }}>
             <Flourish w={72} color="var(--color-accent1)" />
             <div className="t-body">
               {cards[mobileActive].paras.map((p, i) => <p key={i} style={{ margin: i > 0 ? '6px 0 0' : 0 }}>{p}</p>)}
@@ -536,7 +559,7 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
             translateY(50%) pins the row's centre on that midline. */}
         <div style={{
           position: 'absolute',
-          bottom: 'calc((50vh - 45vw + 64px) / 2)',
+          bottom: 'calc((50vh - var(--svc2-mob-d) / 2 + 64px) / 2)',
           left: 'calc(5vw + 8px)',
           transform: 'translateY(50%)',
           display: 'flex', gap: '14px',
