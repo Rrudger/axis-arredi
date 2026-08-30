@@ -242,20 +242,34 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
   // через DOM). Сдвиг — position:relative + top: он не влияет на поток, так
   // что раскладка блока выше (кнопка, лого, слоган, иконки) не едет; менять
   // маргины нельзя — они делят свободное место через marginTop:auto.
+  //
+  // Считаем от низа самой секции, а не от низа вьюпорта. Меню фиксировано, его
+  // rect от прокрутки не зависит, а вот rect ссылки — зависит: пока 4‑й экран
+  // не прокручен, её низ уходит на пару высот экрана вниз. Замер по вьюпорту
+  // давал бы тогда сдвиг в минус пол-документа, и ссылка улетала бы за пределы
+  // секции (у неё overflow:hidden) — то есть пропадала совсем.
   useEffect(() => {
     if (!isMobile || isOpen) return;
     const measure = () => {
       const link = privacyLinkRef.current;
+      const section = sectionRef.current;
       const menu = document.getElementById('mobileMenu');
-      if (!link || !menu) return;
+      if (!link || !section || !menu) return;
+      const menuRect = menu.getBoundingClientRect();
+      // На 1‑м экране меню на мобиле скрыто (display:none) — rect нулевой.
+      // Мерить по нему нельзя; ResizeObserver ниже разбудит замер, как только
+      // меню появится.
+      if (menuRect.height === 0) return;
       // Ссылка появляется с анимацией по translateY — она входит в rect,
       // поэтому вычитаем её, иначе замер в середине анимации промахнётся.
       const shift = new DOMMatrixReadOnly(getComputedStyle(link).transform).f;
       const linkBottom = link.getBoundingClientRect().bottom - shift;
-      const menuTop = menu.getBoundingClientRect().top;
+      // Сколько меню съедает от низа экрана (высота + его собственный отступ).
+      const menuFromBottom = window.innerHeight - menuRect.top;
+      const target = section.getBoundingClientRect().bottom - menuFromBottom - 20;
       // top уже учтён в rect, поэтому корректируем накопительно.
       setPrivacyOffsetY((prev) => {
-        const next = prev + (menuTop - 20 - linkBottom);
+        const next = prev + (target - linkBottom);
         return Math.abs(next - prev) < 0.5 ? prev : next;
       });
     };
