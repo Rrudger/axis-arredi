@@ -167,12 +167,25 @@ export default function Sidebar({ selected, switchSection }:
               highlighted === id ? activeClr : inactiveClr,
               itemHovered === id && 'scale-110',
             )}>
-            {itemHovered === id ? t(label) : (
-              <span className="flex flex-col items-center gap-1 desktop:contents">
-                <Icon className='sm:size-[32px] size-[24px]' />
-                <span className={clsx('desktop:hidden w-1 h-1 rounded-full transition-all duration-300', selected === id ? 'opacity-100 bg-current' : 'opacity-0')} />
-              </span>
+            {/* Подпись пункта — ТОЛЬКО десктоп, где она заменяет иконку при
+                наведении. На мобиле подписи нет никогда: тач-устройство на
+                тапе порождает mouseenter (а mouseleave — нет), из-за чего
+                пункт залипал текстом вместо иконки. Скрываем подпись
+                медиазапросом, а не условием на itemHovered: состояние ховера
+                нужно сохранить, оно красит активный пункт. */}
+            {itemHovered === id && (
+              <span className="hidden desktop:inline">{t(label)}</span>
             )}
+            {/* Иконка с точкой-индикатором — на мобиле всегда; на десктопе у
+                наведённого пункта уступает место подписи (одна display-утилита
+                в каждый момент, иначе contents и hidden конфликтуют). */}
+            <span className={clsx(
+              'flex flex-col items-center gap-1',
+              itemHovered === id ? 'desktop:hidden' : 'desktop:contents',
+            )}>
+              <Icon className='sm:size-[32px] size-[24px]' />
+              <span className={clsx('desktop:hidden w-1 h-1 rounded-full transition-all duration-300', selected === id ? 'opacity-100 bg-current' : 'opacity-0')} />
+            </span>
           </li>
         ))}
       </ul>
