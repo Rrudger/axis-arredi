@@ -290,7 +290,13 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
            за край, позиция заголовка и стрелок, ширина текста) считается
            от него долями, поэтому композиция масштабируется целиком. */
         .svc2-mob {
-          --svc2-mob-d: 90vw;              /* активный круг */
+          /* Диаметр ограничен и шириной, и высотой. Только 90vw давало круг,
+             не знающий про вертикаль: заголовок и стрелки считаются от центра
+             (50dvh), а круги-призраки прибиты к краям контейнера — на низком
+             вьюпорте центр едет к краям и они сходятся. dvh, а не vh: на
+             мобильных 100vh = «большой» вьюпорт (адресная строка спрятана),
+             и расчёт промахивался бы на её высоту. */
+          --svc2-mob-d: min(90vw, 42dvh);  /* активный круг */
           --svc2-mob-ring: calc(var(--svc2-mob-d) * 1.0667);  /* пунктирное кольцо */
           --svc2-mob-ghost: calc(var(--svc2-mob-d) * 0.9);    /* соседние круги */
           --svc2-mob-off: calc(var(--svc2-mob-d) * 0.2222);   /* их вынос за угол */
@@ -559,7 +565,7 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
             translateY(50%) pins the row's centre on that midline. */}
         <div style={{
           position: 'absolute',
-          bottom: 'calc((50vh - var(--svc2-mob-d) / 2 + 64px) / 2)',
+          bottom: 'calc((50dvh - var(--svc2-mob-d) / 2 + 64px) / 2)',
           left: 'calc(5vw + 8px)',
           transform: 'translateY(50%)',
           display: 'flex', gap: '14px',
