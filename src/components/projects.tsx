@@ -639,7 +639,14 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
                   aria-label="Раскрыть текст"
                   className="s3-more-pulse"
                   style={{
-                    position: 'absolute', right: '10px', bottom: bottomInset,
+                    // Прижата к правому краю текстовой области: её край и есть
+                    // отступ панели от края экрана (padding-right 16px), поэтому
+                    // собственного отступа у кнопки почти нет. Оставшиеся 2px —
+                    // запас под пульсацию (.s3-more-pulse, scale 1.05): на пике
+                    // кнопка шириной 36.4px вылезает на 0.91px в каждую сторону,
+                    // а панель и текстовая область обе overflow: hidden, и без
+                    // запаса срезало бы правый бордер.
+                    position: 'absolute', right: '2px', bottom: bottomInset,
                     width: '36.4px', height: '28px', boxSizing: 'border-box',
                     border: '1.5px solid var(--color-accent1)',
                     background: 'var(--color-primary-bg)',
