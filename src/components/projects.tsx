@@ -157,6 +157,9 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
   // Смещение кнопки «…» от низа: остаток высоты области по модулю строки —
   // чтобы кнопка села ровно на последнюю полную строку (центр в центр строки).
   const [bottomInset, setBottomInset] = useState(0);
+  // Высота строки описания — от неё считается размер кнопки «…» (см. ниже).
+  // Кегль t-body-compact меняется по брейкам, поэтому меряем, а не хардкодим.
+  const [lineH, setLineH] = useState(28);
   const [expanded, setExpanded] = useState(false);
   const expandedRef = useRef(false);
   useEffect(() => { expandedRef.current = expanded; }, [expanded]);
@@ -189,7 +192,21 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
       setTruncated(over > 1);
       setOverflowPx(over > 1 ? over : 0);
       const lh = parseFloat(getComputedStyle(el).lineHeight) || 28;
-      setBottomInset(el.clientHeight % lh);
+      setLineH(lh);
+      // Низ последней полностью видимой строки. Простым остатком высоты по
+      // модулю строки не обойтись: между абзацами есть зазор (marginTop), и
+      // строки второго абзаца сдвинуты с общей сетки. Поэтому идём по абзацам
+      // и берём самый нижний край строки, который ещё влезает.
+      let lastLineBottom = 0;
+      for (const para of Array.from(el.children) as HTMLElement[]) {
+        if (!('para' in para.dataset)) continue;
+        const lines = Math.round(para.offsetHeight / lh);
+        for (let n = 1; n <= lines; n++) {
+          const bottom = para.offsetTop + n * lh;
+          if (bottom <= el.clientHeight + 0.5) lastLineBottom = bottom;
+        }
+      }
+      setBottomInset(el.clientHeight - lastLineBottom);
     };
     const ro = new ResizeObserver(check);
     ro.observe(el);
@@ -628,7 +645,11 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
             onClick={expanded ? () => setExpanded(false) : undefined}
             style={{ flex: 1, minHeight: 0, overflow: expanded ? 'auto' : 'hidden', position: 'relative', whiteSpace: 'pre-line', cursor: expanded ? 'pointer' : 'default' }}
           >
-            {linkRubio(slide.body)}
+            {/* Абзацы — отдельными <p>: зазор между ними задаётся явно (0.8
+               строки вместо целой пустой строки при pre-line, т.е. −20%). */}
+            {slide.body.split('\n\n').map((p, i) => (
+              <p key={i} data-para style={{ marginTop: i ? '1.4em' : 0 }}>{linkRubio(p)}</p>
+            ))}
             {!expanded && truncated && (
               <>
                 {/* заглушка прячет обрезанную нижнюю строку — текст кончается на полной */}
@@ -639,15 +660,19 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
                   aria-label="Раскрыть текст"
                   className="s3-more-pulse"
                   style={{
+                    // Размер — от строки текста: высота на 2px меньше строки,
+                    // ширина в той же пропорции 1.3:1. Сидит ровно в последней
+                    // полной строке (bottom: bottomInset + 1px — те 2px поровну
+                    // сверху и снизу), поэтому строка под ней не разъезжается.
                     // Прижата к правому краю текстовой области: её край и есть
                     // отступ панели от края экрана (padding-right 16px), поэтому
                     // собственного отступа у кнопки почти нет. Оставшиеся 2px —
                     // запас под пульсацию (.s3-more-pulse, scale 1.05): на пике
-                    // кнопка шириной 36.4px вылезает на 0.91px в каждую сторону,
-                    // а панель и текстовая область обе overflow: hidden, и без
-                    // запаса срезало бы правый бордер.
-                    position: 'absolute', right: '2px', bottom: bottomInset,
-                    width: '36.4px', height: '28px', boxSizing: 'border-box',
+                    // кнопка вылезает вширь на ~0.8px в каждую сторону, а панель
+                    // и текстовая область обе overflow: hidden, и без запаса
+                    // срезало бы правый бордер.
+                    position: 'absolute', right: '2px', bottom: bottomInset + 1,
+                    width: (lineH - 2) * 1.3, height: lineH - 2, boxSizing: 'border-box',
                     border: '1.5px solid var(--color-accent1)',
                     background: 'var(--color-primary-bg)',
                     color: 'var(--color-text-primary)',
@@ -659,19 +684,21 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
             )}
           </div>
 
-          {/* Стрелки листания проектов — как на 2‑м экране, но с золотым бордером */}
-          <div style={{ display: 'flex', gap: '14px', alignSelf: 'flex-start', flexShrink: 0, marginTop: '20px' }}>
+          {/* Стрелки листания проектов — как на 2‑м экране, но с золотым бордером.
+             Отступ сверху минимальный (к 10px общего gap панели): всё, что здесь
+             не занято, достаётся тексту — в свёрнутом виде влезает больше строк. */}
+          <div style={{ display: 'flex', gap: '14px', alignSelf: 'flex-start', flexShrink: 0, marginTop: '6px' }}>
             <button
               onClick={prev}
               aria-label="Previous"
               style={{
-                width: '52px', height: '52px',
+                width: '41.6px', height: '41.6px',
                 border: '1px solid var(--color-accent1)',
                 background: 'transparent', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
-              <svg width="22" height="18" viewBox="0 0 13 11" fill="none">
+              <svg width="17.6" height="14.4" viewBox="0 0 13 11" fill="none">
                 <path d="M13 5.5H2M6 1L1.5 5.5 6 10" stroke="var(--color-primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
@@ -679,13 +706,13 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
               onClick={next}
               aria-label="Next"
               style={{
-                width: '52px', height: '52px',
+                width: '41.6px', height: '41.6px',
                 border: '1px solid var(--color-accent1)',
                 background: 'transparent', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
-              <svg width="22" height="18" viewBox="0 0 13 11" fill="none">
+              <svg width="17.6" height="14.4" viewBox="0 0 13 11" fill="none">
                 <path d="M0 5.5h11M7 1l4.5 4.5L7 10" stroke="var(--color-primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
