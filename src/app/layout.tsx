@@ -53,7 +53,7 @@ const greatVibes = Great_Vibes({
 
 export const metadata: Metadata = {
   title: "Axis arredi",
-  description: "Axis arredi — L'arte di vivere lo spazio",
+  description: "Axis arredi — L'occhio vuole la sua parte",
 };
 
 export default async function RootLayout({
