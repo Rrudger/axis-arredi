@@ -561,8 +561,12 @@ const ProjectsAlt = forwardRef<HTMLDivElement>((_, ref) => {
           }}
         >
           {/* Ширина текстового блока — доля диаметра (была 62vw при круге 90vw),
-              чтобы на планшете текст остался внутри круга без правки кегля. */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 'calc(var(--svc2-mob-d) * 0.689)', gap: '18px' }}>
+              чтобы на планшете текст остался внутри круга без правки кегля.
+              Зазор виньетка↔текст — тоже доля диаметра (было 18px фиксом):
+              на телефоне даёт ~10px вместо прежних 18 (виньетки прижимались
+              к кольцу и подрезались на низких экранах), на планшете с кругом
+              в 500–660px остаётся ~17px и вид не меняется. */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 'calc(var(--svc2-mob-d) * 0.689)', gap: 'calc(var(--svc2-mob-d) * 0.033)' }}>
             <Flourish w={72} color="var(--color-accent1)" />
             <div className="t-body">
               {cards[mobileActive].paras.map((p, i) => <p key={i} style={{ margin: i > 0 ? '6px 0 0' : 0 }}>{p}</p>)}
