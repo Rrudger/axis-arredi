@@ -26,7 +26,7 @@ const Arrow = ({ dir }: { dir: 'prev' | 'next' }) => (
   </svg>
 );
 
-const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass, arrowFromTitle, controlsInHead }: {
+const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass, arrowFromTitle, controlsInHead, loopPages }: {
   media: MediaItem[][];
   onOpen: (index: number) => void;
   perPage: number;
@@ -40,6 +40,10 @@ const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass, arrow
      вместо строки внизу. Так на мобиле оно не зависит от того, сколько внизу
      занимает плашка меню и адресная строка браузера. */
   controlsInHead?: boolean;
+  /* Листать по кругу, без края. На мобиле стрелка под большим пальцем должна
+     работать всегда: гаснущая на краю кнопка там читается как поломка. На
+     десктопе край видно по индикатору страниц, и стрелки честно упираются. */
+  loopPages?: boolean;
   /* Заголовок экрана: на десктопе — крупная разрядка t-hero, как на втором
      экране; на мобиле — t-display, которым набраны все мобильные заголовки
      сайта (в t-hero «I Nostri Lavori» разъезжается на две строки). */
@@ -75,13 +79,18 @@ const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass, arrow
   const at = Math.min(page, pages - 1);
   const shown = PROJECTS.slice(at * perPage, at * perPage + perPage);
 
+  const go = (dir: 1 | -1) => setPage(loopPages ? (at + dir + pages) % pages : at + dir);
+  // По кругу стрелка мертва только тогда, когда листать нечего вовсе.
+  const blocked = (dir: 1 | -1) =>
+    loopPages ? pages < 2 : dir < 0 ? at === 0 : at >= pages - 1;
+
   const prevBtn = (
-    <button className="pf-arrow" onClick={() => setPage(at - 1)} disabled={at === 0} aria-label="Previous">
+    <button className="pf-arrow" onClick={() => go(-1)} disabled={blocked(-1)} aria-label="Previous">
       <Arrow dir="prev" />
     </button>
   );
   const nextBtn = (
-    <button className="pf-arrow" onClick={() => setPage(at + 1)} disabled={at >= pages - 1} aria-label="Next">
+    <button className="pf-arrow" onClick={() => go(1)} disabled={blocked(1)} aria-label="Next">
       <Arrow dir="next" />
     </button>
   );
@@ -228,7 +237,9 @@ const PortfolioGrid = ({ media, onOpen }: {
         display: flex; align-items: center; justify-content: center;
         transition: border-color 0.2s, opacity 0.2s;
       }
-      .pf-arrow:hover:not(:disabled) { border-color: color-mix(in srgb, var(--color-accent1) 55%, transparent); }
+      @media (hover: hover) {
+        .pf-arrow:hover:not(:disabled) { border-color: color-mix(in srgb, var(--color-accent1) 55%, transparent); }
+      }
       /* На краю списка стрелка остаётся на месте — гаснет, но не исчезает,
          чтобы строка управления не перестраивалась. */
       .pf-arrow:disabled { opacity: 0.3; cursor: default; }
@@ -248,6 +259,9 @@ const PortfolioGrid = ({ media, onOpen }: {
         --pf-arrow: 41.6px;
       }
       .pf-board--mob .pf-head-row { justify-content: space-between; gap: 12px; }
+      /* Стрелки в шапке — золотом виньеток: они стоят вплотную к ней и к
+         заголовку, и общий цвет собирает шапку в одну группу. */
+      .pf-board--mob .pf-arrow { border-color: var(--color-accent1); }
       .pf-board--mob .pf-tiles { grid-template-columns: 1fr; gap: 12px; margin: 20px 0 0; }
       .pf-board--mob .pf-cap { padding: 14px 16px; }
 
@@ -299,7 +313,7 @@ const PortfolioGrid = ({ media, onOpen }: {
     />
     <Board
       media={media} onOpen={onOpen} perPage={2} tileSizes="100vw"
-      titleClass="t-display" controlsInHead
+      titleClass="t-display" controlsInHead loopPages
       className="pf-board pf-board--mob flex desktop:hidden"
     />
   </div>
