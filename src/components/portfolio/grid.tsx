@@ -26,12 +26,16 @@ const Arrow = ({ dir }: { dir: 'prev' | 'next' }) => (
   </svg>
 );
 
-const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass }: {
+const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass, arrowFromTitle }: {
   media: MediaItem[][];
   onOpen: (index: number) => void;
   perPage: number;
   className: string;
   tileSizes: string;
+  /* Сторона стрелок = высота строки заголовка. Считается только там, где
+     заголовок крупный (десктоп): на мобиле t-display дал бы стрелку около
+     32px — мельче комфортного тач-таргета, поэтому там размер свой. */
+  arrowFromTitle?: boolean;
   /* Заголовок экрана: на десктопе — крупная разрядка t-hero, как на втором
      экране; на мобиле — t-display, которым набраны все мобильные заголовки
      сайта (в t-hero «I Nostri Lavori» разъезжается на две строки). */
@@ -40,14 +44,15 @@ const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass }: {
   const t = useTranslations('projects');
   const [page, setPage] = useState(0);
 
-  // Виньетка рисуется в ширину заголовка, поэтому её меряем, а не хардкодим:
-  // ширина зависит от языка (три локали), кегля на брейке и загрузки Cinzel.
+  // Заголовок меряем, а не хардкодим его размеры: они зависят от языка (три
+  // локали), кегля на брейке и загрузки Cinzel. Ширина строки задаёт длину
+  // виньетки, высота строки — сторону квадратных стрелок листания.
   // Заголовок набран с разрядкой, и после последней буквы висит лишний
   // интервал — коробка шире надписи. Поэтому длину виньетки берём без него, а
   // сам заголовок сдвигаем на него влево: иначе надпись и виньетка
   // центрировались бы по разным серединам и виньетка ехала бы вправо.
   const titleRef = useRef<HTMLSpanElement | null>(null);
-  const [title, setTitle] = useState({ w: 0, tail: 0 });
+  const [title, setTitle] = useState({ w: 0, h: 0, tail: 0 });
   useEffect(() => {
     const el = titleRef.current;
     if (!el) return;
@@ -55,7 +60,7 @@ const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass }: {
     // отдельного замера при монтировании не нужно.
     const ro = new ResizeObserver(() => {
       const tail = parseFloat(getComputedStyle(el).letterSpacing) || 0;
-      setTitle({ w: el.offsetWidth - tail, tail });
+      setTitle({ w: el.offsetWidth - tail, h: el.offsetHeight, tail });
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -67,7 +72,12 @@ const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass }: {
   const shown = PROJECTS.slice(at * perPage, at * perPage + perPage);
 
   return (
-    <div className={className}>
+    <div
+      className={className}
+      style={arrowFromTitle && title.h
+        ? ({ '--pf-arrow': `${title.h}px` } as React.CSSProperties)
+        : undefined}
+    >
       <div className="pf-head">
         <span ref={titleRef} className={`pf-title ${titleClass}`} style={{ marginRight: -title.tail }}>
           {t('title')}
@@ -250,7 +260,7 @@ const PortfolioGrid = ({ media, onOpen }: {
 
     <Board
       media={media} onOpen={onOpen} perPage={4} tileSizes="40vw"
-      titleClass="t-hero tracking-[0.24em]"
+      titleClass="t-hero tracking-[0.24em]" arrowFromTitle
       className="pf-board pf-board--desk hidden desktop:flex"
     />
     <Board
