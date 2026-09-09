@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 
@@ -40,6 +40,27 @@ const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass }: {
   const t = useTranslations('projects');
   const [page, setPage] = useState(0);
 
+  // Виньетка рисуется в ширину заголовка, поэтому её меряем, а не хардкодим:
+  // ширина зависит от языка (три локали), кегля на брейке и загрузки Cinzel.
+  // Заголовок набран с разрядкой, и после последней буквы висит лишний
+  // интервал — коробка шире надписи. Поэтому длину виньетки берём без него, а
+  // сам заголовок сдвигаем на него влево: иначе надпись и виньетка
+  // центрировались бы по разным серединам и виньетка ехала бы вправо.
+  const titleRef = useRef<HTMLSpanElement | null>(null);
+  const [title, setTitle] = useState({ w: 0, tail: 0 });
+  useEffect(() => {
+    const el = titleRef.current;
+    if (!el) return;
+    // Первый вызов ResizeObserver приходит сразу на observe(), так что
+    // отдельного замера при монтировании не нужно.
+    const ro = new ResizeObserver(() => {
+      const tail = parseFloat(getComputedStyle(el).letterSpacing) || 0;
+      setTitle({ w: el.offsetWidth - tail, tail });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const pages = Math.max(1, Math.ceil(PROJECTS.length / perPage));
   // Страницу зажимаем, а не заворачиваем: плитка — это список, у него есть край.
   const at = Math.min(page, pages - 1);
@@ -48,8 +69,13 @@ const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass }: {
   return (
     <div className={className}>
       <div className="pf-head">
-        <span className={`pf-title ${titleClass}`}>{t('title')}</span>
-        <Flourish w={200} curlW={56} color="var(--color-accent1)" />
+        <span ref={titleRef} className={`pf-title ${titleClass}`} style={{ marginRight: -title.tail }}>
+          {t('title')}
+        </span>
+        {/* До замера рисуем прикидочную ширину, а не прячем виньетку: иначе на
+            первой отрисовке её строки нет, и вся плитка встала бы на 16px выше,
+            а после гидрации прыгнула бы вниз. */}
+        <Flourish w={title.w || 200} curlW={56} color="var(--color-accent1)" />
       </div>
 
       <div className="pf-tiles">
