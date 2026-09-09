@@ -520,8 +520,6 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
               {slide.title}
             </div>
           </div>
-          <div style={{ width: '25vw', height: '1px', background: 'var(--color-accent1)', flexShrink: 0 }} />
-
           {/* Полный текст описания абзацами. В свёрнутом виде лишнее отсекается,
              в правом нижнем углу — квадратная кнопка «…» (раскрыть). В раскрытом
              виде клик по тексту сворачивает обратно. */}
