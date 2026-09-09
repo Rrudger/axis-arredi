@@ -193,11 +193,22 @@ const PortfolioGrid = ({ media, onOpen }: {
       .pf-board--mob .pf-tiles { grid-template-columns: 1fr; gap: 12px; margin: 20px 0 16px; }
       .pf-board--mob .pf-cap { padding: 14px 16px; }
 
-      /* ── Десктоп ── */
+      /* ── Десктоп ──
+         Вертикальный ритм экрана считается от одного шага — зазора между
+         плитками. Половина шага держит заголовок и виньетку одной группой,
+         удвоенный шаг одинаково отбивает плитку сверху (от заголовка) и снизу
+         (от строки управления), четверть шага разделяет номер и название на
+         самой плитке. Внешняя рамка 80px в ритм не входит: это общий отступ
+         экранов сайта, тот же, что на первом и втором. */
       @media (min-width: 1023px) {
-        .pf-board--desk { padding: 80px 232px 80px 130px; --pf-arrow: 42px; }
-        .pf-board--desk .pf-tiles { grid-template-columns: 1fr 1fr; gap: 24px; margin: 32px 0 24px; }
-        .pf-board--desk .pf-cap { padding: 20px 22px; }
+        .pf-board--desk { padding: 80px 232px 80px 130px; --pf-arrow: 42px; --pf-step: 24px; }
+        .pf-board--desk .pf-head  { gap: calc(var(--pf-step) / 2); }
+        .pf-board--desk .pf-tiles {
+          grid-template-columns: 1fr 1fr;
+          gap: var(--pf-step);
+          margin: calc(var(--pf-step) * 2) 0;
+        }
+        .pf-board--desk .pf-cap { padding: var(--pf-step); gap: calc(var(--pf-step) / 4); }
       }
 
       /* Компактный вьюпорт (узкий ИЛИ низкий): воздух вокруг плитки урезаем,
@@ -206,8 +217,9 @@ const PortfolioGrid = ({ media, onOpen }: {
       :where(html[data-vp]) .pf-board--mob .pf-tiles { gap: 10px; margin: 14px 0 12px; }
       :where(html[data-vp]) .pf-board--mob .pf-cap { padding: 10px 12px; gap: 4px; }
       @media (min-width: 1023px) {
-        :where(html[data-vp]) .pf-board--desk { padding: 48px 232px 48px 130px; }
-        :where(html[data-vp]) .pf-board--desk .pf-tiles { margin: 20px 0 16px; }
+        /* Ужимается сам шаг — вместе с ним пропорционально садятся все
+           интервалы разом, отдельных чисел для компактного вьюпорта не нужно. */
+        :where(html[data-vp]) .pf-board--desk { padding: 48px 232px 48px 130px; --pf-step: 16px; }
       }
     `}</style>
 
