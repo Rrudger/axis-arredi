@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import PortfolioGrid from '@/components/portfolio/grid';
 import ProjectDetail from '@/components/portfolio/detail';
@@ -17,6 +17,22 @@ import { PROJECTS, projectIndexBySlug } from '@/lib/projects';
 
 const PARAM = 'project';
 
+/* Адрес как внешний источник состояния. popstate ловит «назад» браузера, а
+   notifyUrl — наши собственные pushState/replaceState (они события не шлют).
+   Один и тот же notifyUrl в addEventListener регистрируется один раз, сколько
+   бы подписчиков ни пришло. */
+const urlListeners = new Set<() => void>();
+const notifyUrl = () => urlListeners.forEach(fn => fn());
+const readSlug = () => new URLSearchParams(window.location.search).get(PARAM);
+const subscribeUrl = (fn: () => void) => {
+  urlListeners.add(fn);
+  window.addEventListener('popstate', notifyUrl);
+  return () => {
+    urlListeners.delete(fn);
+    if (urlListeners.size === 0) window.removeEventListener('popstate', notifyUrl);
+  };
+};
+
 const Projects = forwardRef<HTMLDivElement>((_, ref) => {
   // Медиа проектов подтягиваются из папок public/images/projects/* через API —
   // порядок и состав меняются вслед за файлами, без правок кода. media[i] —
@@ -32,26 +48,24 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
     return () => { alive = false; };
   }, []);
 
-  const [open, setOpen] = useState<number | null>(null);
+  // Открытый проект не дублируется в состоянии — он читается прямо из адреса.
+  // Копия рассинхронизировалась бы с «назад» браузера, а так источник один.
+  // Серверный снимок — null: на сервере адреса ещё нет, экран отдаётся плиткой,
+  // и React сам перерисует его после гидрации, если в ссылке есть проект.
+  const slug = useSyncExternalStore(subscribeUrl, readSlug, () => null);
+  const index = projectIndexBySlug(slug);
+  const open = index >= 0 ? index : null;
+
   // Своя запись в истории есть только у проекта, открытого кликом по плитке.
   // По ней стрелка «назад» решает, уйти в history.back() (тогда адрес и стрелка
   // ведут себя одинаково) или просто вычистить параметр.
   const pushed = useRef(false);
 
+  // Глубокая ссылка (?project=…): экран проекта должен быть и перед глазами,
+  // а не просто отрисован третьим по счёту.
   useEffect(() => {
-    const readUrl = () => {
-      const i = projectIndexBySlug(new URLSearchParams(window.location.search).get(PARAM));
-      return i >= 0 ? i : null;
-    };
-    const sync = () => { pushed.current = false; setOpen(readUrl()); };
-    // Глубокая ссылка: страница открывается сразу на проекте и на своём экране.
-    const initial = readUrl();
-    if (initial !== null) {
-      setOpen(initial);
-      requestAnimationFrame(() => document.getElementById('portfolioSection')?.scrollIntoView());
-    }
-    window.addEventListener('popstate', sync);
-    return () => window.removeEventListener('popstate', sync);
+    if (projectIndexBySlug(readSlug()) >= 0)
+      document.getElementById('portfolioSection')?.scrollIntoView();
   }, []);
 
   const openProject = (i: number) => {
@@ -59,7 +73,7 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
     url.searchParams.set(PARAM, PROJECTS[i].slug);
     window.history.pushState(null, '', url);
     pushed.current = true;
-    setOpen(i);
+    notifyUrl();
   };
 
   // viaHistory=true — возврат стрелкой: отматываем свою запись назад.
@@ -71,7 +85,7 @@ const Projects = forwardRef<HTMLDivElement>((_, ref) => {
     url.searchParams.delete(PARAM);
     window.history.replaceState(null, '', url);
     pushed.current = false;
-    setOpen(null);
+    notifyUrl();
   };
 
   // Пункт меню «Проекты» при открытом проекте возвращает к плитке — иначе

@@ -26,12 +26,16 @@ const Arrow = ({ dir }: { dir: 'prev' | 'next' }) => (
   </svg>
 );
 
-const Board = ({ media, onOpen, perPage, className, tileSizes }: {
+const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass }: {
   media: MediaItem[][];
   onOpen: (index: number) => void;
   perPage: number;
   className: string;
   tileSizes: string;
+  /* Заголовок экрана: на десктопе — крупная разрядка t-hero, как на втором
+     экране; на мобиле — t-display, которым набраны все мобильные заголовки
+     сайта (в t-hero «I Nostri Lavori» разъезжается на две строки). */
+  titleClass: string;
 }) => {
   const t = useTranslations('projects');
   const [page, setPage] = useState(0);
@@ -44,7 +48,7 @@ const Board = ({ media, onOpen, perPage, className, tileSizes }: {
   return (
     <div className={className}>
       <div className="pf-head">
-        <span className="pf-title t-hero tracking-[0.24em]">{t('title')}</span>
+        <span className={`pf-title ${titleClass}`}>{t('title')}</span>
         <Flourish w={200} curlW={56} color="var(--color-accent1)" />
       </div>
 
@@ -209,10 +213,12 @@ const PortfolioGrid = ({ media, onOpen }: {
 
     <Board
       media={media} onOpen={onOpen} perPage={4} tileSizes="40vw"
+      titleClass="t-hero tracking-[0.24em]"
       className="pf-board pf-board--desk hidden desktop:flex"
     />
     <Board
       media={media} onOpen={onOpen} perPage={2} tileSizes="100vw"
+      titleClass="t-display"
       className="pf-board pf-board--mob flex desktop:hidden"
     />
   </div>

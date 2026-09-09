@@ -88,8 +88,6 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
     return () => ro.disconnect();
   }, []);
 
-  useEffect(() => { setMobileActive(0); setOffset(0); setExpanded(false); }, [current]);
-
   // Переполнение текста описания: показывать ли «…» и на сколько px растить
   // панель при раскрытии. Мерим только в свёрнутом виде; пересчёт при ресайзе и
   // смене проекта.
@@ -214,7 +212,6 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
            остаются на своих местах (flex-shrink:0), а не выдавливаются за
            нижний край, где их режет overflow:hidden контейнера. */
         .s3-panel-content { min-height: 0; display: flex; flex-direction: column; }
-        .s3-dot { transition: width 0.3s, background-color 0.3s; }
         /* Ссылка внутри описания проекта — цвет текста + золотое подчёркивание */
         .s3-link {
           color: inherit;
