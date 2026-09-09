@@ -26,7 +26,7 @@ const Arrow = ({ dir }: { dir: 'prev' | 'next' }) => (
   </svg>
 );
 
-const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass, arrowFromTitle }: {
+const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass, arrowFromTitle, controlsInHead }: {
   media: MediaItem[][];
   onOpen: (index: number) => void;
   perPage: number;
@@ -36,6 +36,10 @@ const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass, arrow
      заголовок крупный (десктоп): на мобиле t-display дал бы стрелку около
      32px — мельче комфортного тач-таргета, поэтому там размер свой. */
   arrowFromTitle?: boolean;
+  /* Управление в шапке (стрелки по краям заголовка, точки под виньеткой)
+     вместо строки внизу. Так на мобиле оно не зависит от того, сколько внизу
+     занимает плашка меню и адресная строка браузера. */
+  controlsInHead?: boolean;
   /* Заголовок экрана: на десктопе — крупная разрядка t-hero, как на втором
      экране; на мобиле — t-display, которым набраны все мобильные заголовки
      сайта (в t-hero «I Nostri Lavori» разъезжается на две строки). */
@@ -71,6 +75,31 @@ const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass, arrow
   const at = Math.min(page, pages - 1);
   const shown = PROJECTS.slice(at * perPage, at * perPage + perPage);
 
+  const prevBtn = (
+    <button className="pf-arrow" onClick={() => setPage(at - 1)} disabled={at === 0} aria-label="Previous">
+      <Arrow dir="prev" />
+    </button>
+  );
+  const nextBtn = (
+    <button className="pf-arrow" onClick={() => setPage(at + 1)} disabled={at >= pages - 1} aria-label="Next">
+      <Arrow dir="next" />
+    </button>
+  );
+  // Индикатор страниц — те же штрихи, что на остальных экранах
+  const dots = (
+    <div className="pf-dots">
+      {Array.from({ length: pages }, (_, i) => (
+        <span
+          key={i} onClick={() => setPage(i)} className="pf-dot"
+          style={{
+            backgroundColor: i === at ? 'var(--color-primary)' : 'var(--color-primary-border)',
+            width: i === at ? '22px' : '12px',
+          }}
+        />
+      ))}
+    </div>
+  );
+
   return (
     <div
       className={className}
@@ -79,13 +108,18 @@ const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass, arrow
         : undefined}
     >
       <div className="pf-head">
-        <span ref={titleRef} className={`pf-title ${titleClass}`} style={{ marginRight: -title.tail }}>
-          {t('title')}
-        </span>
+        <div className="pf-head-row">
+          {controlsInHead && prevBtn}
+          <span ref={titleRef} className={`pf-title ${titleClass}`} style={{ marginRight: -title.tail }}>
+            {t('title')}
+          </span>
+          {controlsInHead && nextBtn}
+        </div>
         {/* До замера рисуем прикидочную ширину, а не прячем виньетку: иначе на
             первой отрисовке её строки нет, и вся плитка встала бы на 16px выше,
             а после гидрации прыгнула бы вниз. */}
         <Flourish w={title.w || 200} curlW={56} color="var(--color-accent1)" />
+        {controlsInHead && dots}
       </div>
 
       <div className="pf-tiles">
@@ -120,35 +154,12 @@ const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass, arrow
         })}
       </div>
 
-      <div className="pf-foot">
-        <div className="pf-arrows">
-          <button
-            className="pf-arrow" onClick={() => setPage(at - 1)}
-            disabled={at === 0} aria-label="Previous"
-          >
-            <Arrow dir="prev" />
-          </button>
-          <button
-            className="pf-arrow" onClick={() => setPage(at + 1)}
-            disabled={at >= pages - 1} aria-label="Next"
-          >
-            <Arrow dir="next" />
-          </button>
+      {!controlsInHead && (
+        <div className="pf-foot">
+          <div className="pf-arrows">{prevBtn}{nextBtn}</div>
+          {dots}
         </div>
-
-        {/* Индикатор страниц — те же штрихи, что на остальных экранах */}
-        <div className="pf-dots">
-          {Array.from({ length: pages }, (_, i) => (
-            <span
-              key={i} onClick={() => setPage(i)} className="pf-dot"
-              style={{
-                backgroundColor: i === at ? 'var(--color-primary)' : 'var(--color-primary-border)',
-                width: i === at ? '22px' : '12px',
-              }}
-            />
-          ))}
-        </div>
-      </div>
+      )}
     </div>
   );
 };
@@ -162,6 +173,10 @@ const PortfolioGrid = ({ media, onOpen }: {
       .pf-board { flex-direction: column; width: 100%; height: 100%; }
 
       .pf-head { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+      /* Строка заголовка. На десктопе в ней только он сам и она центрирует;
+         на мобиле по краям встают стрелки листания, и заголовок остаётся по
+         центру сам собой — стрелки одинаковой ширины. */
+      .pf-head-row { display: flex; width: 100%; align-items: center; justify-content: center; }
       .pf-title { color: var(--color-primary); text-align: center; }
 
       /* Контейнеры забирают всю высоту, что осталась от заголовка и стрелок:
@@ -221,13 +236,31 @@ const PortfolioGrid = ({ media, onOpen }: {
       .pf-dots { display: flex; gap: 10px; align-items: center; }
       .pf-dot { display: inline-block; height: 0.5px; cursor: pointer; transition: width 0.3s, background-color 0.3s; }
 
-      /* ── Мобайл ── */
+      /* ── Мобайл ──
+         Управление живёт в шапке: стрелки по краям заголовка, точки под
+         виньеткой. Низ экрана для него больше не нужен — а он там и не
+         доставался: секция это 100vh («большой» вьюпорт), плашку меню Chrome
+         на Android прибивает к ВИДИМОМУ низу, и разница между этими низами —
+         высота адресной строки, около 55px, — съедала почти весь резерв.
+         Строка со стрелками уходила под меню целиком. */
       .pf-board--mob {
-        padding: 28px 16px 84px; /* низ — под плашку мобильного меню */
+        padding: 28px 16px 84px;
         --pf-arrow: 41.6px;
       }
-      .pf-board--mob .pf-tiles { grid-template-columns: 1fr; gap: 12px; margin: 20px 0 16px; }
+      .pf-board--mob .pf-head-row { justify-content: space-between; gap: 12px; }
+      .pf-board--mob .pf-tiles { grid-template-columns: 1fr; gap: 12px; margin: 20px 0 0; }
       .pf-board--mob .pf-cap { padding: 14px 16px; }
+
+      /* Занятый низ считаем, а не угадываем: плашка меню (56px) со своим
+         отступом (12px) и просветом до неё, жестовая полоса и то самое
+         расхождение вьюпортов. Иначе подпись нижней плитки оказывается под
+         меню. В скобках — ноль на десктопе и в браузерах без выезжающей
+         панели. Запасное значение выше остаётся там, где нет svh. */
+      @supports (height: 100svh) {
+        .pf-board--mob {
+          padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px) + (100vh - 100svh));
+        }
+      }
 
       /* ── Десктоп ──
          Вертикальный ритм экрана считается от одного шага — зазора между
@@ -248,8 +281,9 @@ const PortfolioGrid = ({ media, onOpen }: {
 
       /* Компактный вьюпорт (узкий ИЛИ низкий): воздух вокруг плитки урезаем,
          сами контейнеры от этого только выигрывают в высоте. */
-      :where(html[data-vp]) .pf-board--mob { padding: 18px 12px 76px; }
-      :where(html[data-vp]) .pf-board--mob .pf-tiles { gap: 10px; margin: 14px 0 12px; }
+      /* Низ не трогаем — он считается выше и от компактности не зависит. */
+      :where(html[data-vp]) .pf-board--mob { padding-top: 18px; padding-left: 12px; padding-right: 12px; }
+      :where(html[data-vp]) .pf-board--mob .pf-tiles { gap: 10px; margin: 14px 0 0; }
       :where(html[data-vp]) .pf-board--mob .pf-cap { padding: 10px 12px; gap: 4px; }
       @media (min-width: 1023px) {
         /* Ужимается сам шаг — вместе с ним пропорционально садятся все
@@ -265,7 +299,7 @@ const PortfolioGrid = ({ media, onOpen }: {
     />
     <Board
       media={media} onOpen={onOpen} perPage={2} tileSizes="100vw"
-      titleClass="t-display"
+      titleClass="t-display" controlsInHead
       className="pf-board pf-board--mob flex desktop:hidden"
     />
   </div>
