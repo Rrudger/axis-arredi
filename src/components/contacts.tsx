@@ -191,6 +191,8 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
     const update = () => {
       const el = logoRef.current;
       if (!el) { setLogoClipPath(undefined); return; }
+      const section = sectionRef.current;
+      if (!section) { setLogoClipPath(undefined); return; }
       const r = el.getBoundingClientRect();
       // Диагональ нарисована клипом по коробке секции, поэтому и считаем по
       // ней (windowW/windowH — размеры секции), а не по window.inner*: на
@@ -198,15 +200,23 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
       // уезжал от диагонали при загрузке.
       const W = windowW || window.innerWidth;
       const H = windowH || window.innerHeight;
+      // Позиция логотипа — тоже ОТНОСИТЕЛЬНО СЕКЦИИ. Раньше здесь стоял
+      // r.top, то есть координата во вьюпорте, а линия среза (0.58*H)
+      // отсчитывается от верха секции. Совпадало это только когда секция
+      // ровно во весь экран; при частичной прокрутке 4-го экрана верх секции
+      // уезжал вверх, разница попадала в расчёт — и логотип на глазах
+      // то срезался, то открывался. Теперь обе величины в одной системе
+      // координат, и клип от прокрутки не зависит вовсе.
+      const top = r.top - section.getBoundingClientRect().top;
       // Clip line: diagonal slope -H/W, passing through (r.right, 0.58*H - 20)
       const clipYScreen = 0.58 * H - 20;
-      const yR = clipYScreen - r.top;       // local y at right edge
+      const yR = clipYScreen - top;         // local y at right edge
       const lH = r.height;
       const lW = r.width;
       if (yR >= lH) { setLogoClipPath(undefined); return; }
       const f = (v: number, d: number) => `${((v / d) * 100).toFixed(1)}%`;
       // Where diagonal exits bottom edge (local y = lH)
-      const xBot = lW - (r.top + lH - clipYScreen) * (W / H);
+      const xBot = lW - (top + lH - clipYScreen) * (W / H);
       let pts = `0 0, 100% 0, 100% ${f(Math.max(0, yR), lH)}`;
       if (xBot > 0 && xBot < lW) pts += `, ${f(xBot, lW)} 100%`;
       pts += `, 0 100%`;
@@ -223,12 +233,12 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
       if (now - start < 950) loopId = requestAnimationFrame(loop);
     };
     loopId = requestAnimationFrame(loop);
-    // Клип считается по позиции логотипа относительно вьюпорта. Сайт —
-    // постраничный скролл: если он загружен на 1-м экране, логотип 4-го
-    // экрана далеко внизу за вьюпортом (r.top огромный) → клип считается по
-    // «нижней» позиции и срезает логотип. При долистывании до 4-го экрана
-    // позиция меняется, поэтому пересчитываем на скролле (пока секция видна)
-    // и когда логотип попадает во вьюпорт. rAF-троттлинг, чтобы не молотить.
+    // Пересчёт на скролле остаётся страховкой: сам клип теперь от прокрутки
+    // не зависит (обе координаты берутся от верха секции), но во время
+    // прокрутки может доехать анимация формы или дозагрузиться шрифт —
+    // положение логотипа внутри секции при этом меняется. rAF-троттлинг,
+    // чтобы не молотить; если значение не изменилось, React перерисовку
+    // не делает.
     let ticking = false;
     const onScroll = () => {
       if (ticking) return;
