@@ -258,12 +258,20 @@ const PortfolioGrid = ({ media, onOpen }: {
       .pf-board--mob {
         padding: 28px 16px 84px;
         --pf-arrow: 41.6px;
+        --pf-step: 12px;
       }
-      .pf-board--mob .pf-head-row { justify-content: space-between; gap: 12px; }
+      .pf-board--mob .pf-head-row { justify-content: space-between; gap: var(--pf-step); }
+      /* Виньетка отбита поровну: сверху до строки заголовка, снизу до плитки —
+         по два шага. Шаг тот же, что и зазор между плитками, как на десктопе. */
+      .pf-board--mob .pf-head { gap: calc(var(--pf-step) * 2); }
       /* Стрелки в шапке — золотом виньеток: они стоят вплотную к ней и к
          заголовку, и общий цвет собирает шапку в одну группу. */
       .pf-board--mob .pf-arrow { border-color: var(--color-accent1); }
-      .pf-board--mob .pf-tiles { grid-template-columns: 1fr; gap: 12px; margin: 20px 0 0; }
+      .pf-board--mob .pf-tiles {
+        grid-template-columns: 1fr;
+        gap: var(--pf-step);
+        margin: calc(var(--pf-step) * 2) 0 0;
+      }
       .pf-board--mob .pf-cap { padding: 14px 16px; }
 
       /* Занятый низ считаем, а не угадываем: плашка меню (56px) со своим
@@ -297,8 +305,7 @@ const PortfolioGrid = ({ media, onOpen }: {
       /* Компактный вьюпорт (узкий ИЛИ низкий): воздух вокруг плитки урезаем,
          сами контейнеры от этого только выигрывают в высоте. */
       /* Низ не трогаем — он считается выше и от компактности не зависит. */
-      :where(html[data-vp]) .pf-board--mob { padding-top: 18px; padding-left: 12px; padding-right: 12px; }
-      :where(html[data-vp]) .pf-board--mob .pf-tiles { gap: 10px; margin: 14px 0 0; }
+      :where(html[data-vp]) .pf-board--mob { padding-top: 18px; padding-left: 12px; padding-right: 12px; --pf-step: 10px; }
       :where(html[data-vp]) .pf-board--mob .pf-cap { padding: 10px 12px; gap: 4px; }
       @media (min-width: 1023px) {
         /* Ужимается сам шаг — вместе с ним пропорционально садятся все
