@@ -274,7 +274,7 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
         {/* Text panel — LEFT */}
         <div className="s3-panel" style={{
           background: 'var(--color-primary-bg)',
-          display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+          display: 'flex', flexDirection: 'column', justifyContent: 'flex-start',
           position: 'relative',
         }}>
           <div ref={headRuleRef} style={{
@@ -322,7 +322,7 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
           <CtaButton
             variant="light"
             className="s3-btn"
-            style={{ marginTop: '40px' }}
+            style={{ marginTop: '20px' }}
             onClick={onContact}
           >
             {t('cta')}
