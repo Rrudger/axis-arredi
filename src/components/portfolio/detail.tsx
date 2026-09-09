@@ -189,7 +189,7 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
         .s3-back {
           align-self: flex-start; flex-shrink: 0;
           display: flex; align-items: center; gap: 10px;
-          margin-bottom: calc(var(--s3-gap) * 2); padding: 0;
+          margin-bottom: var(--s3-gap); padding: 0;
           background: none; border: 0; cursor: pointer;
           color: var(--color-primary-light);
           transition: color 0.2s;
