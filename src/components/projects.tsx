@@ -10,6 +10,11 @@ import Flourish from '@/components/ui/flourish';
 const TOTAL = 4;
 const TOTAL_STR = String(TOTAL).padStart(2, '0');
 
+// Стартовая громкость видео. Звук выключен, пока его не включат нативными
+// контролами, — и включиться он должен вполголоса, а не в упор: съёмка
+// цеховая, там инструмент. Дальше уровень в руках зрителя.
+const START_VOLUME = 0.4;
+
 // «Rubio Monocoat» в любом описании — ссылка на официальный сайт бренда в Италии.
 // Разбиваем строку по имени бренда и подменяем совпадения на <a>.
 const RUBIO_URL = 'https://www.rubiomonocoat.it/';
@@ -31,14 +36,16 @@ const linkRubio = (text: string) =>
     ),
   );
 
-type MediaItem = { src: string; type: 'image' | 'video' };
+type MediaItem = { src: string; type: 'image' | 'video'; poster?: string };
 
 // Один слой карусели — фото или видео, одинаково растянутые на слот.
 // Видео проигрывается, только пока оно в крупном слоте (active): muted + loop +
 // playsInline обязательны, иначе браузер не разрешит автостарт без клика. Пока
-// оно в миниатюре, грузится только метаданные — виден первый кадр, а сам поток
-// не качается. Уходя из крупного, перематываем на начало, чтобы при следующем
-// показе видео начиналось сначала.
+// оно в миниатюре, грузится только метаданные, а сам поток не качается.
+// Постер (первый кадр, снятый на сборке) виден сразу и до того, как метаданные
+// дойдут: Chrome на Android без него держит элемент чёрным, пока
+// воспроизведение реально не начнётся. Уходя из крупного, перематываем на
+// начало, чтобы при следующем показе видео начиналось сначала.
 const MediaLayer = ({ item, active, sizes, priority, objectPosition = 'left center', onRatio }: {
   item: MediaItem;
   active: boolean;
@@ -57,18 +64,24 @@ const MediaLayer = ({ item, active, sizes, priority, objectPosition = 'left cent
   // обработчик отключаем, иначе тап по кнопке плеера дошёл бы и до нас и сразу
   // ставил бы обратно на паузу. Контролы держим до ухода из крупного слота.
   const [controls, setControls] = useState(false);
+  // Браузер вправе отклонить автостарт (экономия трафика, режим энергосбережения,
+  // настройки сайта). Раньше отказ молча глотался и слот оставался пустым; теперь
+  // на постере появляется значок play, и первый тап запускает ролик руками.
+  const [needsTap, setNeedsTap] = useState(false);
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
-    if (active) el.play().catch(() => {});
+    if (active) el.play().then(() => setNeedsTap(false), () => setNeedsTap(true));
     else { el.pause(); el.currentTime = 0; setControls(false); }
   }, [active]);
 
   if (item.type === 'video') {
     return (
+      <>
       <video
         ref={videoRef}
         src={item.src}
+        poster={item.poster}
         muted
         loop
         playsInline
@@ -76,10 +89,19 @@ const MediaLayer = ({ item, active, sizes, priority, objectPosition = 'left cent
         controls={controls}
         onClick={active && !controls ? e => {
           e.stopPropagation();
-          videoRef.current?.pause();
+          const el = videoRef.current;
+          if (!el) return;
+          // Пока ролик не запущен, тап — это «играть», а не «пауза».
+          if (needsTap) { el.play().then(() => setNeedsTap(false), () => {}); return; }
+          el.pause();
           setControls(true);
         } : undefined}
         onLoadedMetadata={e => {
+          // Уровень ставим один раз, при загрузке метаданных, а не при каждом
+          // входе в крупный слот: иначе выбранное зрителем сбрасывалось бы на
+          // наше при возврате к ролику. На iOS свойство игнорируется —
+          // громкостью там рулит только сам аппарат.
+          e.currentTarget.volume = START_VOLUME;
           const landscape = e.currentTarget.videoWidth > e.currentTarget.videoHeight;
           setPortrait(!landscape);
           onRatio?.(landscape);
@@ -91,6 +113,8 @@ const MediaLayer = ({ item, active, sizes, priority, objectPosition = 'left cent
           cursor: active && !controls ? 'pointer' : 'default',
         }}
       />
+      {active && needsTap && !controls && <PlayBadge size={44} />}
+      </>
     );
   }
 

@@ -1,31 +1,43 @@
 #!/usr/bin/env python3
-"""Готовит видео проекта к заливке в GitHub Release и создаёт файл-ссылку.
+"""Готовит видео проекта к заливке в GitHub Release: энкод, постер, файл-ссылка.
 
-    python3 scripts/add-video.py <проект> <файл> [--as 0.mp4]
+    python3 scripts/add-video.py <проект> <файл> [--as 0.mp4] [--crf 21]
 
 <проект> — имя папки в public/images/projects (например «rafia»).
 --as     — под каким именем видео встанет в сортировке слайда: «0.mp4» делает
            его крупным, остальные идут по натуральному порядку имён. По
            умолчанию берётся имя исходного файла.
+--crf    — качество энкода: меньше значение — выше битрейт и вес. 21 по
+           умолчанию, 23 заметно легче при почти той же картинке.
 
-Скрипт делает три вещи:
+Скрипт делает четыре вещи:
 
-1. Ремуксит mp4/mov, перенося атом moov в начало (qt-faststart). Потоки
-   копируются дословно — качество не меняется, но браузер начинает
-   воспроизведение сразу, не скачав файл целиком.
+1. Перекодирует в веб-профиль: H.264, CRF 21, потолок битрейта 4 Мбит/с,
+   разрешение исходника не меняется. Камерные 8–13 Мбит/с телефон по
+   мобильной сети не вытягивает — ролик не набирает буфер и не стартует.
+   Разница на глаз не видна: запас по битрейту у исходника четырёхкратный.
+   Атом moov уезжает в начало файла (+faststart), иначе браузер не может
+   начать воспроизведение, не докачав всё до конца.
 2. Кладёт результат в ~/axis-video/ под именем ассета «<проект>-<имя>»:
    имена ассетов уникальны в пределах релиза, а имя в папке проекта —
    отдельно, поэтому «0.mp4» может быть в каждом проекте свой.
-3. Пишет public/images/projects/<проект>/<имя>.url с готовым URL.
+3. Снимает первый кадр в public/images/projects/<проект>/poster/<имя>.jpg.
+   Без постера Chrome на Android держит слот чёрным, пока воспроизведение не
+   началось. Подпапка «poster» в список медиа не попадает — у неё нет
+   расширения, фильтр роута её отбрасывает.
+4. Пишет public/images/projects/<проект>/<имя>.url с готовым URL.
 
 Остаётся открыть релиз, перетащить туда файл из ~/axis-video/ и закоммитить
-файл-ссылку. Порядок роли не играет: ссылка заработает, как только ассет
-окажется в релизе.
+постер с файлом-ссылкой. Порядок роли не играет: ссылка заработает, как
+только ассет окажется в релизе.
 
 Менять уже залитый ассет нельзя — URL кэшируется браузером и CDN. Новая
 версия ролика = новое имя (--as 0-v2.mp4), старый ассет потом удаляется.
 """
-import argparse, os, re, shutil, struct, sys
+# Аннотации строками: системный python 3.8 не понимает list[str] в рантайме.
+from __future__ import annotations
+
+import argparse, re, shutil, subprocess, sys
 from pathlib import Path
 
 REPO = 'Rrudger/axis-arredi'
@@ -37,70 +49,30 @@ VID_RE = re.compile(r'\.(mp4|webm|mov)$', re.I)
 # GitHub заменяет в именах ассетов всё, кроме букв, цифр, точки, дефиса и
 # подчёркивания — приводим имя сами, чтобы URL совпал с тем, что мы записали.
 SAFE_RE = re.compile(r'[^A-Za-z0-9._-]+')
-
-CONTAINERS = {b'moov', b'trak', b'mdia', b'minf', b'stbl', b'edts', b'udta'}
-
-
-def parse(buf, start, end):
-    """Перебирает боксы ISO-BMFF в buf[start:end]."""
-    pos = start
-    while pos + 8 <= end:
-        size, typ = struct.unpack_from('>I4s', buf, pos)
-        hsize = 8
-        if size == 1:
-            size = struct.unpack_from('>Q', buf, pos + 8)[0]
-            hsize = 16
-        elif size == 0:
-            size = end - pos
-        if size < hsize or pos + size > end:
-            raise ValueError(f'битый бокс {typ!r} на позиции {pos}')
-        yield typ, hsize, pos, pos + size
-        pos += size
+MAXRATE = '4M'
+POSTER_WIDTH = 1280
 
 
-def shift_offsets(buf, start, end, delta):
-    """Сдвигает на delta каждую запись stco/co64 внутри buf[start:end]."""
-    n = 0
-    for typ, hsize, bs, be in parse(buf, start, end):
-        if typ in CONTAINERS:
-            n += shift_offsets(buf, bs + hsize, be, delta)
-        elif typ in (b'stco', b'co64'):
-            wide = typ == b'co64'
-            fmt, width = ('>Q', 8) if wide else ('>I', 4)
-            count = struct.unpack_from('>I', buf, bs + hsize + 4)[0]
-            off = bs + hsize + 8
-            for i in range(count):
-                v = struct.unpack_from(fmt, buf, off + width * i)[0] + delta
-                if not wide and v > 0xFFFFFFFF:
-                    raise ValueError('переполнение stco — файлу нужен co64')
-                struct.pack_into(fmt, buf, off + width * i, v)
-            n += count
-    return n
+def run(cmd: list[str]) -> None:
+    p = subprocess.run(cmd, capture_output=True, text=True)
+    if p.returncode:
+        sys.exit(f'ffmpeg не справился:\n{p.stderr.strip()[-2000:]}')
 
 
-def faststart(src: Path, dst: Path) -> None:
-    """Пересобирает файл с moov впереди. mdat переносится байт в байт."""
-    data = src.read_bytes()
-    top = list(parse(data, 0, len(data)))
-    names = [t.decode('latin1') for t, _, _, _ in top]
-    if 'moov' not in names or 'mdat' not in names:
-        raise ValueError('в файле нет moov/mdat — это не mp4/mov')
-    if names.index('moov') < names.index('mdat'):
-        shutil.copyfile(src, dst)
-        print('  moov уже впереди — копирую как есть')
-        return
+def encode(src: Path, dst: Path, crf: int) -> None:
+    run(['ffmpeg', '-y', '-hide_banner', '-loglevel', 'error', '-i', str(src),
+         '-c:v', 'libx264', '-crf', str(crf), '-preset', 'slow',
+         '-profile:v', 'high', '-pix_fmt', 'yuv420p',
+         '-maxrate', MAXRATE, '-bufsize', '8M',
+         '-c:a', 'aac', '-b:a', '128k', '-ac', '2',
+         '-movflags', '+faststart', str(dst)])
 
-    ms, me = next((bs, be) for t, _, bs, be in top if t == b'moov')
-    moov = bytearray(data[ms:me])
-    # Всё, что лежало после ftyp, съезжает ровно на размер moov.
-    patched = shift_offsets(moov, 8, len(moov), len(moov))
-    with dst.open('wb') as f:
-        f.write(next(data[bs:be] for t, _, bs, be in top if t == b'ftyp'))
-        f.write(moov)
-        for typ, _, bs, be in top:
-            if typ not in (b'ftyp', b'moov'):
-                f.write(data[bs:be])
-    print(f'  moov {len(moov)} Б перенесён в начало, исправлено {patched} смещений чанков')
+
+def poster(src: Path, dst: Path) -> None:
+    dst.parent.mkdir(exist_ok=True)
+    run(['ffmpeg', '-y', '-hide_banner', '-loglevel', 'error', '-i', str(src),
+         '-frames:v', '1', '-vf', f"scale='min({POSTER_WIDTH},iw)':-2",
+         '-q:v', '4', str(dst)])
 
 
 def main() -> int:
@@ -108,7 +80,11 @@ def main() -> int:
     ap.add_argument('project', help='папка в public/images/projects')
     ap.add_argument('video', type=Path, help='исходный файл')
     ap.add_argument('--as', dest='name', help='имя в папке проекта, задаёт порядок (напр. 0.mp4)')
+    ap.add_argument('--crf', type=int, default=21, help='качество энкода, по умолчанию 21')
     args = ap.parse_args()
+
+    if not shutil.which('ffmpeg'):
+        return print('нужен ffmpeg: sudo apt install ffmpeg', file=sys.stderr) or 1
 
     folder = BASE / args.project
     if not folder.is_dir():
@@ -128,22 +104,24 @@ def main() -> int:
     OUT.mkdir(exist_ok=True)
     dst = OUT / asset
 
-    print(f'{args.video} → {dst}')
-    if args.video.suffix.lower() in ('.mp4', '.mov'):
-        faststart(args.video, dst)
-    else:
-        shutil.copyfile(args.video, dst)
-        print('  webm — ремукс не нужен, копирую как есть')
+    print(f'энкод (CRF {args.crf}, потолок {MAXRATE}): {args.video} → {dst}')
+    encode(args.video, dst, args.crf)
+    before, after = args.video.stat().st_size, dst.stat().st_size
+    print(f'  {before / 1e6:.1f} МБ → {after / 1e6:.1f} МБ')
+
+    shot = folder / 'poster' / f'{name}.jpg'
+    poster(dst, shot)
+    print(f'постер:      {shot.relative_to(ROOT)} ({shot.stat().st_size // 1024} КБ)')
 
     url = f'https://github.com/{REPO}/releases/download/{TAG}/{asset}'
     sidecar = folder / f'{name}.url'
     sidecar.write_text(url + '\n', encoding='utf-8')
-
-    print(f'\nфайл-ссылка: {sidecar.relative_to(ROOT)}')
+    print(f'файл-ссылка: {sidecar.relative_to(ROOT)}')
     print(f'URL:         {url}')
+
     print(f'\nОсталось: залить {dst.name} в релиз {TAG}')
     print(f'           https://github.com/{REPO}/releases/edit/{TAG}')
-    print(f'           и закоммитить {sidecar.name}')
+    print(f'           и закоммитить {sidecar.name} с постером')
     return 0
 
 
