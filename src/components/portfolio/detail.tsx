@@ -489,8 +489,36 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
           display: 'flex', flexDirection: 'column', gap: '10px',
           transition: 'height 0.4s cubic-bezier(0.4,0,0.2,1)',
         }}>
-          <div className="t-display" style={{ color: 'var(--color-primary)', whiteSpace: 'pre-line', flexShrink: 0 }}>
-            {slide.title}
+          {/* Низ панели совпадает с низом секции. Волосяная линия закрывает его
+             так же, как на десктопе: пока экран выровнен, её прячет плашка меню,
+             а на прокрутке между экранами она показывает, что страница здесь
+             кончилась, — иначе резерв под меню читается обрывом. */}
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0,
+            height: '0.5px', background: 'var(--color-accent1)', opacity: 0.25,
+          }} />
+
+          {/* Возврат к плитке — слева от названия проекта, тем же приёмом, что и
+             стрелки листания в шапке плитки: управление живёт в строке
+             заголовка, а низ панели остаётся свободным. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+            <button
+              onClick={onBack}
+              aria-label={t('back')}
+              style={{
+                width: '41.6px', height: '41.6px', flexShrink: 0,
+                border: '1px solid var(--color-accent1)',
+                background: 'transparent', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <svg width="17.6" height="14.4" viewBox="0 0 13 11" fill="none">
+                <path d="M13 5.5H2M6 1L1.5 5.5 6 10" stroke="var(--color-primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <div className="t-display" style={{ color: 'var(--color-primary)', whiteSpace: 'pre-line' }}>
+              {slide.title}
+            </div>
           </div>
           <div style={{ width: '25vw', height: '1px', background: 'var(--color-accent1)', flexShrink: 0 }} />
 
@@ -542,25 +570,6 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
             )}
           </div>
 
-          {/* Возврат к плитке проектов. Отступ сверху минимальный (к 10px общего
-             gap панели): всё, что здесь не занято, достаётся тексту — в
-             свёрнутом виде влезает больше строк. */}
-          <div style={{ display: 'flex', alignSelf: 'flex-start', flexShrink: 0, marginTop: '6px' }}>
-            <button
-              onClick={onBack}
-              aria-label={t('back')}
-              style={{
-                width: '41.6px', height: '41.6px',
-                border: '1px solid var(--color-accent1)',
-                background: 'transparent', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
-              <svg width="17.6" height="14.4" viewBox="0 0 13 11" fill="none">
-                <path d="M13 5.5H2M6 1L1.5 5.5 6 10" stroke="var(--color-primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          </div>
         </div>
 
       </div>
