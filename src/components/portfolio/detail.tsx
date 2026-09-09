@@ -74,20 +74,6 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
   const expandedRef = useRef(false);
   useEffect(() => { expandedRef.current = expanded; }, [expanded]);
 
-  // Стрелки — квадрат со стороной, равной высоте CTA-кнопки. Высота кнопки
-  // зависит от line-height Cinzel + паддингов/бордера, поэтому меряем её на
-  // рантайме, а не хардкодим.
-  const ctaRef = useRef<HTMLButtonElement | null>(null);
-  const [arrowSize, setArrowSize] = useState(42);
-  useEffect(() => {
-    const el = ctaRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => setArrowSize(el.offsetHeight));
-    ro.observe(el);
-    setArrowSize(el.offsetHeight);
-    return () => ro.disconnect();
-  }, []);
-
   // Переполнение текста описания: показывать ли «…» и на сколько px растить
   // панель при раскрытии. Мерим только в свёрнутом виде; пересчёт при ресайзе и
   // смене проекта.
@@ -196,8 +182,24 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
           to   { opacity: 1; transform: translateY(0); }
         }
         .s3-slide-in { animation: s3-fade-in 0.45s ease forwards; }
-        .s3-arrow { transition: border-color 0.2s !important; }
-        .s3-arrow:hover { border-color: rgba(232,168,56,0.55) !important; }
+        /* Возврат к плитке — строка над заголовком проекта. Служебное действие
+           стоит до содержимого, а не после CTA: это шаг вверх по иерархии, а не
+           ещё одна кнопка вслед за целевой. Стрелка на наведении отъезжает
+           влево — туда, куда и ведёт. */
+        .s3-back {
+          align-self: flex-start; flex-shrink: 0;
+          display: flex; align-items: center; gap: 10px;
+          margin-bottom: 18px; padding: 0;
+          background: none; border: 0; cursor: pointer;
+          color: var(--color-primary-light);
+          transition: color 0.2s;
+        }
+        .s3-back svg { transition: transform 0.2s; }
+        .s3-back:hover { color: var(--color-accent1); }
+        .s3-back:hover svg { transform: translateX(-3px); }
+        @media (prefers-reduced-motion: reduce) {
+          .s3-back:hover svg { transform: none; }
+        }
         /* CTA — общий элемент .cta-button; здесь только раскладка/ширина */
         .s3-btn {
           display: block;
@@ -287,6 +289,15 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
           }} />
 
           <div key={`s3-panel-${current}`} className="s3-slide-in s3-panel-content">
+            {/* Подпись обязательна: одна стрелка в колонке не объясняет, ведёт
+               она к списку проектов или к соседнему проекту. */}
+            <button onClick={onBack} className="s3-back t-label">
+              <svg width="13" height="11" viewBox="0 0 13 11" fill="none" aria-hidden="true">
+                <path d="M13 5.5H2M6 1L1.5 5.5 6 10" stroke="currentColor" strokeWidth="0.75"/>
+              </svg>
+              {t('back')}
+            </button>
+
             <div className="s3-title t-display" style={{
               color: 'var(--color-primary)',
               marginBottom: '20px',
@@ -309,7 +320,6 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
           </div>
 
           <CtaButton
-            ref={ctaRef}
             variant="light"
             className="s3-btn"
             style={{ marginTop: '40px' }}
@@ -318,21 +328,6 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
             {t('cta')}
           </CtaButton>
 
-          {/* Нижняя строка панели — возврат к плитке. padding-bottom панели = 0,
-             поэтому стрелка выравнивается с нижним краем фото, как раньше
-             выравнивалась строка со стрелками листания. */}
-          <div style={{ marginTop: 'auto', flexShrink: 0 }}>
-            <button onClick={onBack} className="s3-arrow" aria-label={t('back')} style={{
-              width: arrowSize, height: arrowSize,
-              border: '0.5px solid color-mix(in srgb, var(--color-primary) 45%, transparent)',
-              background: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <svg width="13" height="11" viewBox="0 0 13 11" fill="none">
-                <path d="M13 5.5H2M6 1L1.5 5.5 6 10" stroke="var(--color-primary)" strokeWidth="0.75"/>
-              </svg>
-            </button>
-          </div>
         </div>
 
         {/* Image zone — RIGHT */}
