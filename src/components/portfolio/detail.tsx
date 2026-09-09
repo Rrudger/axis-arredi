@@ -189,7 +189,7 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
         .s3-back {
           align-self: flex-start; flex-shrink: 0;
           display: flex; align-items: center; gap: 10px;
-          margin-bottom: 18px; padding: 0;
+          margin-bottom: calc(var(--s3-gap) * 2); padding: 0;
           background: none; border: 0; cursor: pointer;
           color: var(--color-primary-light);
           transition: color 0.2s;
@@ -200,6 +200,17 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
         @media (prefers-reduced-motion: reduce) {
           .s3-back:hover svg { transform: none; }
         }
+        /* Ритм панели: между виньеткой, заголовком, текстом и кнопкой — один
+           и тот же шаг. Раньше каждый интервал задавался своим числом в разных
+           местах, а виньетка вообще стояла вне потока, и отступ под ней был
+           не задан, а получался остатком паддинга панели. */
+        .s3-head-rule {
+          flex-shrink: 0; height: 16px;
+          display: flex; align-items: center;
+          margin-bottom: var(--s3-gap);
+        }
+        .s3-title { flex-shrink: 0; margin-bottom: var(--s3-gap); }
+
         /* CTA — общий элемент .cta-button; здесь только раскладка/ширина */
         .s3-btn {
           display: block;
@@ -207,6 +218,7 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
           padding-left: 0; padding-right: 0;
           text-align: center;
           flex-shrink: 0;
+          margin-top: var(--s3-gap);
         }
         /* Текстовый блок — единственный, кто сжимается, если описание длиннее
            панели: min-height:0 снимает авто-минимум флекс-элемента, и лишнее
@@ -257,14 +269,14 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
         .s3-img-zone { flex: 0 0 70%; }
         /* min-width:0 — панель держит ровно свою долю (30%), не раздувается длинным
            заголовком; иначе неразрывный t-display ломает соотношение и клипует фото */
-        .s3-panel    { flex: 1; min-width: 0; padding: 40px 0 0 0; }
+        .s3-panel    { flex: 1; min-width: 0; padding: 0; --s3-gap: 20px; }
         .s3-body     { line-height: 1.85; min-height: 0; overflow-y: auto; }
 
         /* desktop (1023px – 1699px) */
         @media (max-width: 1699px) {
           .s3-layout   { }
           .s3-img-zone { flex: 0 0 70%; }
-          .s3-panel    { padding: 40px 44px 0 0; }
+          .s3-panel    { padding: 0 44px 0 0; }
         }
       `}</style>
 
@@ -277,12 +289,6 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
           display: 'flex', flexDirection: 'column', justifyContent: 'flex-start',
           position: 'relative',
         }}>
-          <div ref={headRuleRef} style={{
-            position: 'absolute', top: 0, left: 0, right: 0,
-            height: '16px', display: 'flex', alignItems: 'center',
-          }}>
-            {headRuleW > 0 && <Flourish w={headRuleW} curlW={56} color="var(--color-accent1)" />}
-          </div>
           <div style={{
             position: 'absolute', bottom: 0, left: 0, right: 0,
             height: '0.5px', background: 'var(--color-accent1)', opacity: 0.25,
@@ -298,19 +304,16 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
               {t('back')}
             </button>
 
+            <div ref={headRuleRef} className="s3-head-rule">
+              {headRuleW > 0 && <Flourish w={headRuleW} curlW={56} color="var(--color-accent1)" />}
+            </div>
+
             <div className="s3-title t-display" style={{
               color: 'var(--color-primary)',
-              marginBottom: '20px',
               whiteSpace: 'pre-line',
             }}>
               {slide.title}
             </div>
-
-            <div style={{
-              width: '32px', height: '0.5px',
-              background: 'var(--color-accent1)',
-              marginBottom: '20px',
-            }} />
 
             <div className="s3-body t-body-compact" style={{
               display: 'flex', flexDirection: 'column', gap: '16px',
@@ -322,7 +325,6 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
           <CtaButton
             variant="light"
             className="s3-btn"
-            style={{ marginTop: '20px' }}
             onClick={onContact}
           >
             {t('cta')}
