@@ -26,8 +26,18 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
   const privacyLinkRef = useRef<HTMLAnchorElement>(null);
   const [privacyOffsetY, setPrivacyOffsetY] = useState(0);
 
+  // Размер берём с самой секции (она w-screen/h-screen), а не с window.inner*:
+  // на Android innerHeight меняется от адресной строки уже после первой
+  // отрисовки, а высота секции (100vh = «большой» вьюпорт) стабильна. По
+  // innerHeight угол диагонали (diagAngle) пересчитывался на лету — надпись
+  // с адресом доворачивалась и переставала совпадать с самой диагональю,
+  // которая нарисована клипом по коробке секции.
   useLayoutEffect(() => {
-    const update = () => { setWindowW(window.innerWidth); setWindowH(window.innerHeight); };
+    const update = () => {
+      const el = sectionRef.current;
+      setWindowW(el ? el.clientWidth : window.innerWidth);
+      setWindowH(el ? el.clientHeight : window.innerHeight);
+    };
     update();
     window.addEventListener('resize', update);
     requestAnimationFrame(() => setMounted(true));
@@ -182,8 +192,12 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
       const el = logoRef.current;
       if (!el) { setLogoClipPath(undefined); return; }
       const r = el.getBoundingClientRect();
-      const W = window.innerWidth;
-      const H = window.innerHeight;
+      // Диагональ нарисована клипом по коробке секции, поэтому и считаем по
+      // ней (windowW/windowH — размеры секции), а не по window.inner*: на
+      // Android innerHeight «дышит» вместе с адресной строкой, и срез логотипа
+      // уезжал от диагонали при загрузке.
+      const W = windowW || window.innerWidth;
+      const H = windowH || window.innerHeight;
       // Clip line: diagonal slope -H/W, passing through (r.right, 0.58*H - 20)
       const clipYScreen = 0.58 * H - 20;
       const yR = clipYScreen - r.top;       // local y at right edge

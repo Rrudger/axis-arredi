@@ -322,7 +322,7 @@ html[lang="ru"] .t-script { font-size: 22px; }
 
    Два условия, любое включает набор:
 
-   1) max-width: 374.98px — узкие телефоны. Граница НЕ на ровном 360:
+   1) ширина ≤374.98px — узкие телефоны. Граница НЕ на ровном 360:
       реальные устройства часто отдают дробную CSS-ширину (360.3, 360.6)
       и при `max-width: 360px` набор молча не включался, хотя в эмуляторе
       на целом 360 включался всегда. 374.98 покрывает весь диапазон 360-х
@@ -334,30 +334,49 @@ html[lang="ru"] .t-script { font-size: 22px; }
       высоте помещается заметно меньше, чем в эмуляторе с ровной 800+.
       Ограничение по ширине (≤1022px = ниже desktop:) обязательно, иначе
       набор ловил бы низкие ДЕСКТОПНЫЕ окна (напр. 1400×700).
-═══════════════════════════════════════════════════════════════ */
-@media (max-width: 374.98px), (max-width: 1022px) and (max-height: 740px) {
-  .t-hero         { font-size: 24px; }
-  .t-display      { font-size: 22px; }
-  .t-title        { font-size: 16px; }
-  .t-subtitle     { font-size: 12px; }
-  .t-label        { font-size:  9px; }
-  .t-caption      { font-size:  7px; }
-  .t-body         { font-size: 14px; }
-  .t-body-compact { font-size: 14px; }
-  .t-body-sm      { font-size: 10px; }
-  .t-script       { font-size: 24px; }
-  /* ru: кириллический Great Vibes (см. «РУССКАЯ ЛОКАЛИЗАЦИЯ») */
-  html[lang="ru"] .t-script { font-size: 19px; }
 
-  /* Форма контактов и CTA — те же −10–15% */
-  .contacts-title    { font-size: clamp(19px, 6vw, 26px); }
-  .contacts-subtitle { font-size: 13px; }
-  .contacts-label    { font-size: 10px; }
-  .contacts-input    { font-size: 15px; }
-  .contacts-textarea { font-size: 15px; }
-  .cta-button        { font-size: 11px; }
-  .contacts-btn-send { font-size: 11px; }
-}
+   ── Почему не @media, а атрибут data-vp ─────────────────────────
+   Условие по ВЫСОТЕ в медиазапросе на Android нестабильно: у Chrome
+   медиазапрос height считается по ТЕКУЩЕЙ высоте вьюпорта, а она при
+   загрузке меняется — адресная строка/панели въезжают уже после первой
+   отрисовки. Кадр рисовался высоким вьюпортом (набор не включён,
+   крупные кегли), затем высота падала ниже 740px и всё скачком
+   уменьшалось. То же самое ловил dvh в геометрии (services.tsx).
+
+   Поэтому высота меряется один раз ДО первой отрисовки — инлайновым
+   скриптом в layout.tsx, по «малому» вьюпорту (100svh: как будто все
+   панели браузера показаны; в отличие от innerHeight и dvh, svh не
+   зависит от того, свёрнута ли адресная строка). Скрипт вешает на <html>
+   атрибут data-vp="compact" | "tight" (или снимает его), и наборы кеглей
+   висят на этом атрибуте. Ширина стабильна сама по себе, но включена в
+   тот же расчёт, чтобы условие было в одном месте.
+
+   Селекторы обёрнуты в :where(...) — у него нулевая специфичность,
+   поэтому вес правил остался ровно таким же, как был у `.t-hero` внутри
+   @media. Это важно: локальные <style>-блоки компонентов идут в DOM
+   ПОСЛЕ globals.css и должны перебивать эти правила так же, как раньше.
+═══════════════════════════════════════════════════════════════ */
+:where(html[data-vp]) .t-hero         { font-size: 24px; }
+:where(html[data-vp]) .t-display      { font-size: 22px; }
+:where(html[data-vp]) .t-title        { font-size: 16px; }
+:where(html[data-vp]) .t-subtitle     { font-size: 12px; }
+:where(html[data-vp]) .t-label        { font-size:  9px; }
+:where(html[data-vp]) .t-caption      { font-size:  7px; }
+:where(html[data-vp]) .t-body         { font-size: 14px; }
+:where(html[data-vp]) .t-body-compact { font-size: 14px; }
+:where(html[data-vp]) .t-body-sm      { font-size: 10px; }
+:where(html[data-vp]) .t-script       { font-size: 24px; }
+/* ru: кириллический Great Vibes (см. «РУССКАЯ ЛОКАЛИЗАЦИЯ») */
+html[lang="ru"]:where([data-vp]) .t-script { font-size: 19px; }
+
+/* Форма контактов и CTA — те же −10–15% */
+:where(html[data-vp]) .contacts-title    { font-size: clamp(19px, 6vw, 26px); }
+:where(html[data-vp]) .contacts-subtitle { font-size: 13px; }
+:where(html[data-vp]) .contacts-label    { font-size: 10px; }
+:where(html[data-vp]) .contacts-input    { font-size: 15px; }
+:where(html[data-vp]) .contacts-textarea { font-size: 15px; }
+:where(html[data-vp]) .cta-button        { font-size: 11px; }
+:where(html[data-vp]) .contacts-btn-send { font-size: 11px; }
 
 /* ═══════════════════════════════════════════════════════════════
    ТЕСНЫЙ ЭКРАН — узкий И низкий одновременно (360×700 и подобные).
@@ -375,33 +394,33 @@ html[lang="ru"] .t-script { font-size: 22px; }
    (экран 360×780 минус строка состояния, панель навигации, адресная
    строка) — то есть самый массовый реальный случай, а не краевой.
 
-   Границы те же, что у компактного блока, но через `and`, а не запятую:
-   374.98px (дробная CSS-ширина реальных 360-х) и 740px по высоте.
-   Блок стоит ПОСЛЕ компактного, чтобы выигрывать каскадом.
+   Границы те же, что у компактного блока, но оба условия сразу:
+   ширина ≤374.98px и высота ≤740px. Их пересечение скрипт из layout.tsx
+   помечает как data-vp="tight" (см. блок «КОМПАКТНЫЙ ЭКРАН» выше —
+   там же про то, почему не @media). Блок стоит ПОСЛЕ компактного,
+   чтобы выигрывать каскадом.
 ═══════════════════════════════════════════════════════════════ */
-@media (max-width: 374.98px) and (max-height: 740px) {
-  .t-hero         { font-size:  21px; }
-  .t-display      { font-size:  20px; }
-  .t-title        { font-size:  15px; }
-  .t-subtitle     { font-size:  11px; }
-  .t-label        { font-size: 7.5px; }
-  .t-caption      { font-size:   6px; }
-  .t-body         { font-size:  13px; }
-  .t-body-compact { font-size:  13px; }
-  .t-body-sm      { font-size:   9px; }
-  .t-script       { font-size:  21px; }
-  /* ru: кириллический Great Vibes (см. «РУССКАЯ ЛОКАЛИЗАЦИЯ») */
-  html[lang="ru"] .t-script { font-size: 16.5px; }
+:where(html[data-vp="tight"]) .t-hero         { font-size:  21px; }
+:where(html[data-vp="tight"]) .t-display      { font-size:  20px; }
+:where(html[data-vp="tight"]) .t-title        { font-size:  15px; }
+:where(html[data-vp="tight"]) .t-subtitle     { font-size:  11px; }
+:where(html[data-vp="tight"]) .t-label        { font-size: 7.5px; }
+:where(html[data-vp="tight"]) .t-caption      { font-size:   6px; }
+:where(html[data-vp="tight"]) .t-body         { font-size:  13px; }
+:where(html[data-vp="tight"]) .t-body-compact { font-size:  13px; }
+:where(html[data-vp="tight"]) .t-body-sm      { font-size:   9px; }
+:where(html[data-vp="tight"]) .t-script       { font-size:  21px; }
+/* ru: кириллический Great Vibes (см. «РУССКАЯ ЛОКАЛИЗАЦИЯ») */
+html[lang="ru"]:where([data-vp="tight"]) .t-script { font-size: 16.5px; }
 
-  /* Форма контактов и CTA — те же −12% */
-  .contacts-title    { font-size: clamp(16.5px, 6vw, 23px); }
-  .contacts-subtitle { font-size: 12px; }
-  .contacts-label    { font-size:  9px; }
-  .contacts-input    { font-size: 14px; }
-  .contacts-textarea { font-size: 14px; }
-  .cta-button        { font-size: 10px; }
-  .contacts-btn-send { font-size: 10px; }
-}
+/* Форма контактов и CTA — те же −12% */
+:where(html[data-vp="tight"]) .contacts-title    { font-size: clamp(16.5px, 6vw, 23px); }
+:where(html[data-vp="tight"]) .contacts-subtitle { font-size: 12px; }
+:where(html[data-vp="tight"]) .contacts-label    { font-size:  9px; }
+:where(html[data-vp="tight"]) .contacts-input    { font-size: 14px; }
+:where(html[data-vp="tight"]) .contacts-textarea { font-size: 14px; }
+:where(html[data-vp="tight"]) .cta-button        { font-size: 10px; }
+:where(html[data-vp="tight"]) .contacts-btn-send { font-size: 10px; }
 
 @media (hover: hover) {
   .cta-button:hover,
