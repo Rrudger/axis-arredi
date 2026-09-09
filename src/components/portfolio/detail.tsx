@@ -269,7 +269,7 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
         .s3-img-zone { flex: 0 0 70%; }
         /* min-width:0 — панель держит ровно свою долю (30%), не раздувается длинным
            заголовком; иначе неразрывный t-display ломает соотношение и клипует фото */
-        .s3-panel    { flex: 1; min-width: 0; padding: 0; --s3-gap: 20px; }
+        .s3-panel    { flex: 1; min-width: 0; padding: 0; --s3-gap: 40px; }
         .s3-body     { line-height: 1.85; min-height: 0; overflow-y: auto; }
 
         /* desktop (1023px – 1699px) */
