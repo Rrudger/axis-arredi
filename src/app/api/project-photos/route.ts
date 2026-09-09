@@ -2,12 +2,14 @@ import { readdir, readFile, stat } from 'fs/promises';
 import { join } from 'path';
 import { NextResponse } from 'next/server';
 
+import { PROJECT_DIRS } from '@/lib/projects';
+
 /* Lists the portfolio media per project folder in /public/images/projects so the
    projects screen reflects the folders automatically — rename/add/remove files and
    the change shows up after the next build, no code edit needed.
 
-   Each project maps to one subfolder; PROJECT_DIRS order lines up with the slides
-   in projects.tsx. Both photos and videos are listed, sorted together by natural
+   Each project maps to one subfolder; PROJECT_DIRS (см. src/lib/projects.ts)
+   задаёт и порядок папок здесь, и порядок плиток на третьем экране. Both photos and videos are listed, sorted together by natural
    filename order, so a file named "0.jpg" comes first, then "1", "2", … — rename a
    file to "0…" to make it the large one (works for a video too). Every src gets
    "?v=<mtime>" so replacing a file (same name, new content) changes the URL and
@@ -31,7 +33,6 @@ import { NextResponse } from 'next/server';
    сразу: Chrome на Android при preload="metadata" первый кадр не рисует и
    держит элемент чёрным до старта воспроизведения. */
 const BASE = join(process.cwd(), 'public', 'images', 'projects');
-const PROJECT_DIRS = ['kitchen', 'vine', 'coda di rondine', 'rafia']; // slide order: project1, project2, …
 const IMG_RE = /\.(jpe?g|png|webp|avif)$/i;
 const VID_RE = /\.(mp4|webm|mov)$/i;
 const URL_RE = /\.url$/i;

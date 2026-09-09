@@ -12,6 +12,7 @@
   "projects": {
     "title": "Our Work",
     "cta": "Get in touch",
+    "back": "Back to projects",
     "project1": {
       "label": "Kitchen",
       "title": "Japandi-style kitchen",

@@ -12,6 +12,7 @@
   "projects": {
     "title": "Наши проекты",
     "cta": "Связаться",
+    "back": "К проектам",
     "project1": {
       "label": "Кухня",
       "title": "Кухня в стиле Japandi",

@@ -101,6 +101,10 @@ export default function Sidebar({ selected, switchSection }:
 
   const handleSwitchSection = (id: Section) => {
     switchSection(id);
+    // Раздел «Проекты» — это плитка. Если там открыт частный проект, пункт меню
+    // должен вернуть к плитке, а не привести внутрь проекта: третий экран сам
+    // слушает это событие и закрывает проект.
+    if (id === 'portfolio') window.dispatchEvent(new Event('portfolio:home'));
     document.getElementById(`${id}Section`)?.scrollIntoView({ behavior: 'smooth' });
   };
 

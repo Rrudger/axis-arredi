@@ -522,6 +522,12 @@ html[lang="ru"]:where([data-vp="tight"]) .t-script { font-size: 16.5px; }
      (на десктопе меню прозрачное, поэтому токен влияет только на мобайл). */
   --color-menu-plate:      color-mix(in srgb, var(--color-mosaic-1) 58%, transparent);
 
+  /* Затемнение фото-плитки проектов (3-й экран): подпись на кадре должна
+     читаться на любом снимке — светлом, пёстром, контровом. Первый тон —
+     покой, второй — наведение/тап. Тот же тёмный тон мозаики, что у плашек. */
+  --color-scrim:           color-mix(in srgb, var(--color-mosaic-1) 66%, transparent);
+  --color-scrim-strong:    color-mix(in srgb, var(--color-mosaic-1) 84%, transparent);
+
   /* Тень текста */
   --color-shadow:          color-mix(in srgb, var(--color-mosaic-1) 55%, transparent);
 

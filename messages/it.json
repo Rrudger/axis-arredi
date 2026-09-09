@@ -12,6 +12,7 @@
   "projects": {
     "title": "I Nostri Lavori",
     "cta": "Contattaci",
+    "back": "Torna ai progetti",
     "project1": {
       "label": "Cucina",
       "title": "Cucina stile Japandi",
