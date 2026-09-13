@@ -108,7 +108,7 @@
   },
   "privacy": {
     "title": "Privacy & Cookie Policy",
-    "updated": "Ultimo aggiornamento: luglio 2026",
+    "updated": "Ultimo aggiornamento: settembre 2026",
     "back": "Torna al sito",
     "owner": {
       "heading": "Titolare del trattamento",
@@ -119,8 +119,8 @@
       "body": "Questo sito non utilizza cookie di profilazione, statistici o pubblicitari. L'unico cookie presente è il cookie tecnico NEXT_LOCALE, impostato soltanto quando scegli manualmente la lingua del sito e usato esclusivamente per ricordare questa preferenza. In quanto cookie strettamente necessario, non richiede consenso: per questo il sito non mostra alcun banner."
     },
     "map": {
-      "heading": "Mappa di Google",
-      "body": "Nella sezione contatti è incorporata una mappa di Google Maps. Al caricamento della mappa, Google LLC può raccogliere dati tecnici (ad esempio l'indirizzo IP) secondo la propria informativa sulla privacy, disponibile su policies.google.com."
+      "heading": "Mappa",
+      "body": "Nella sezione contatti la mappa è un'immagine statica, generata a partire dai dati di OpenStreetMap e ospitata sui nostri stessi server. Per visualizzarla il tuo browser non contatta alcun servizio esterno e nessun dato viene trasmesso a terzi. I dati cartografici sono © OpenStreetMap contributors, disponibili con licenza ODbL (openstreetmap.org/copyright). Soltanto se scegli di cliccare sulla mappa si apre Google Maps in una nuova scheda: da quel momento si applica l'informativa privacy di Google."
     },
     "hosting": {
       "heading": "Hosting",

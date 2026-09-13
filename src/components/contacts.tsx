@@ -3,6 +3,7 @@
 import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 
 import CtaButton from '@/components/ui/cta-button';
@@ -1044,33 +1045,72 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
           transition: mapTransition,
         }} />
 
-        {/* Google карта */}
+        {/* ── Карта ───────────────────────────────────────────────────
+            Статичная картинка, отрендеренная из данных OpenStreetMap и
+            лежащая на своём домене. Раньше здесь был iframe Google Maps —
+            он отдавал IP посетителя в Google ещё до какого-либо согласия,
+            а живой картой всё равно не был: события до неё не доходят
+            (pointerEvents ниже), зум и перетаскивание были отключены.
+            Взаимодействие — на зонах-оверлеях, клик открывает Google Maps.
+
+            Файл уже в градациях серого, поэтому CSS-фильтра нет.
+            Снимок отцентрован на 43.5996474, 11.0519248 (via Chinigiano,
+            Tresanti), охват ~1.8 км. Геометрия ниже ставит центр снимка
+            ровно в точку 73%/73% контейнера, где стоит маркер: при
+            width/height 120% и смещении 13% центр = 13+60 = 73%, при
+            180% и -17% центр = -17+90 = 73%. Менять эти числа парами. */}
         <div className="absolute inset-0" style={{
           clipPath: mapClipPath,
           opacity: 0.5,
           transition: mapTransition,
-          // Взаимодействие обрабатывают отдельные зоны-оверлеи (клик по карте
-          // открывает Google Maps), поэтому у самой карты события отключены.
           pointerEvents: 'none',
         }}>
-          <iframe
-            src={
-              isMobile
-                ? 'https://maps.google.com/maps?q=via+Chinigiano+10+Montespertoli&output=embed&z=17'
-                : 'https://maps.google.com/maps?q=via+Chinigiano+10+Montespertoli&output=embed'
-            }
-            style={{
-              border: 0,
-              filter: 'grayscale(100%)',
-              position: 'absolute',
-              width: isMobile ? '180%' : '120%',
-              height: isMobile ? '180%' : '120%',
-              left: isMobile ? '-17%' : '13%',
-              top: isMobile ? '-17%' : '13%',
-            }}
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
+          <div style={{
+            position: 'absolute',
+            width:  isMobile ? '180%' : '120%',
+            height: isMobile ? '180%' : '120%',
+            left:   isMobile ? '-17%' : '13%',
+            top:    isMobile ? '-17%' : '13%',
+          }}>
+            {/* objectFit: cover держит центр снимка в центре элемента при
+                любой пропорции вьюпорта — иначе маркер уехал бы с места. */}
+            <Image
+              src="/images/map/montespertoli.webp"
+              alt=""
+              fill
+              sizes={isMobile ? '180vw' : '120vw'}
+              style={{ objectFit: 'cover' }}
+            />
+          </div>
+        </div>
+
+        {/* Атрибуция OpenStreetMap (ODbL) — для карты, отрендеренной из их
+            данных. Свой clipPath, чтобы подпись не вылезала за треугольник;
+            угол 100%/100% лежит внутри него во всех состояниях.
+
+            На мобайле в раскрытом состоянии треугольник сжимается до уголка
+            (нижняя грань — 28% ширины, ~109px на 390px), а строка при 8px
+            занимает ~150px и упёрлась бы в гипотенузу. Там подпись гаснет
+            вместе со сжатием карты; обязательный по ODbL кредит со ссылкой
+            на лицензию всё равно лежит на /privacy — ссылка на неё есть в
+            футере этого же экрана. */}
+        <div className="absolute inset-0" style={{
+          clipPath: mapClipPath,
+          transition: mapTransition,
+          pointerEvents: 'none',
+          zIndex: 24,
+        }}>
+          <span className="t-caption" style={{
+            position: 'absolute',
+            right: '10px',
+            bottom: '7px',
+            color: 'var(--color-text-muted)',
+            opacity: isMobile && isOpen ? 0 : 0.75,
+            transition: 'opacity 0.35s ease',
+            whiteSpace: 'nowrap',
+          }}>
+            © OpenStreetMap contributors
+          </span>
         </div>
 
         {/* Затемнение карты под боковым меню (десктоп): градиент, разлитый
