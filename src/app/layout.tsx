@@ -124,7 +124,11 @@ export default async function RootLayout({
   const locale = await getLocale();
 
   return (
-    <html lang={locale}>
+    /* suppressHydrationWarning — из-за скрипта выше: он ставит data-vp на
+       <html> до гидрации, и React видит на клиенте атрибут, которого нет в
+       серверном HTML. Подавление действует только на сам этот тег (его
+       атрибуты), содержимое страницы сверяется как обычно. */
+    <html lang={locale} suppressHydrationWarning>
       <body className={`${cinzel.variable} ${italianno.variable} ${lora.variable} ${playfair.variable} ${greatVibes.variable} antialiased`}>
         <script dangerouslySetInnerHTML={{ __html: VIEWPORT_SNAPSHOT }} />
         <FaviconSwitcher />
