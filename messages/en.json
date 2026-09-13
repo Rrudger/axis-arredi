@@ -124,11 +124,15 @@
     },
     "hosting": {
       "heading": "Hosting",
-      "body": "The website is hosted by Vercel Inc. The servers automatically record in technical logs the data required for the operation and security of the service (IP address, requests, date and time). This data is not used to identify visitors, nor is it combined with other sources."
+      "body": "The website is hosted by Vercel Inc. The servers automatically record in technical logs the data required for the operation and security of the service (IP address, requests, date and time). This data is not used to identify visitors, nor is it combined with other sources. The site's functions are configured to run in Vercel's European region (Frankfurt), so form processing and the related logs also stay within the European Union."
     },
     "rights": {
       "heading": "Your rights",
       "body": "Under Regulation (EU) 2016/679 (GDPR) you have the right to access your data, request its rectification or erasure, restrict or object to its processing. To exercise these rights, write to info@axisarredi.it. You also have the right to lodge a complaint with the Italian data protection authority (Garante per la protezione dei dati personali)."
+    },
+    "form": {
+      "heading": "Contact form",
+      "body": "The form in the contacts section collects only the data you enter yourself: your name, email address and the text of your message. We process it solely in order to reply to your enquiry; the legal basis is the performance of pre-contractual measures taken at your request (Article 6(1)(b) GDPR). Providing the data is optional, but without it the message cannot be sent. Your enquiry is delivered to our mailbox at Zoho, whose servers are located in the European Union, and is not disclosed to anyone else. We keep the correspondence for as long as it takes to handle the enquiry and any business relationship arising from it, after which it is deleted; you may request its erasure at any time by writing to info@axisarredi.it. To curb automated spam the form uses a hidden field and a temporary limit on the number of submissions per IP address: the address stays in the server's memory for a few minutes only and is not stored."
     }
   }
 }

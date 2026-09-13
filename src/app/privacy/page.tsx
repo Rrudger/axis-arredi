@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 /* Informativa privacy/cookie (обязательная по GDPR/Garante «informativa» —
    даже при одних технических куках). Открывается по ссылке из футера
    4-го экрана. Порядок секций фиксирован здесь, тексты — в messages/*. */
-const SECTIONS = ['owner', 'cookies', 'map', 'hosting', 'rights'] as const;
+const SECTIONS = ['owner', 'form', 'cookies', 'map', 'hosting', 'rights'] as const;
 
 export default async function PrivacyPage() {
   const t = await getTranslations('privacy');

@@ -124,11 +124,15 @@
     },
     "hosting": {
       "heading": "Hosting",
-      "body": "Il sito è ospitato su Vercel Inc. I server registrano automaticamente nei log tecnici i dati necessari al funzionamento e alla sicurezza del servizio (indirizzo IP, richieste, data e ora). Questi dati non vengono usati per identificare i visitatori né incrociati con altre fonti."
+      "body": "Il sito è ospitato su Vercel Inc. I server registrano automaticamente nei log tecnici i dati necessari al funzionamento e alla sicurezza del servizio (indirizzo IP, richieste, data e ora). Questi dati non vengono usati per identificare i visitatori né incrociati con altre fonti. Le funzioni del sito sono configurate per essere eseguite nella regione europea di Vercel (Francoforte), quindi anche l'elaborazione del modulo e i relativi log restano nell'Unione Europea."
     },
     "rights": {
       "heading": "I tuoi diritti",
       "body": "Ai sensi del Regolamento (UE) 2016/679 (GDPR) hai il diritto di accedere ai tuoi dati, chiederne la rettifica o la cancellazione, limitarne il trattamento od opporti allo stesso. Per esercitare questi diritti scrivi a info@axisarredi.it. Hai inoltre il diritto di proporre reclamo al Garante per la protezione dei dati personali."
+    },
+    "form": {
+      "heading": "Modulo di contatto",
+      "body": "Il modulo nella sezione contatti raccoglie soltanto i dati che inserisci tu: nome, indirizzo email e testo del messaggio. Li trattiamo esclusivamente per rispondere alla tua richiesta; la base giuridica è l'esecuzione di misure precontrattuali adottate su tua richiesta (art. 6, par. 1, lett. b del GDPR). Il conferimento è facoltativo, ma senza questi dati non è possibile inviare il messaggio. La richiesta viene recapitata alla nostra casella di posta presso Zoho, i cui server si trovano nell'Unione Europea, e non viene comunicata a nessun altro soggetto. Conserviamo la corrispondenza per il tempo necessario a gestire la richiesta e gli eventuali rapporti commerciali che ne derivano, dopodiché viene eliminata; puoi chiederne la cancellazione in qualsiasi momento scrivendo a info@axisarredi.it. Per arginare l'invio automatico di spam il modulo usa un campo nascosto e un limite temporaneo sul numero di invii per indirizzo IP: l'indirizzo resta nella memoria del server solo per pochi minuti e non viene archiviato."
     }
   }
 }
