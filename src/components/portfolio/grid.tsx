@@ -8,15 +8,20 @@ import Flourish from '@/components/ui/flourish';
 import { coverOf, PlayBadge, type MediaItem } from '@/components/portfolio/media';
 import { PROJECTS } from '@/lib/projects';
 
-/* Плитка проектов — то, с чего теперь начинается третий экран. Одна страница
-   плитки: 4 контейнера на десктопе (2×2), 2 на мобиле (в столбец); лишние
-   проекты уходят на следующие страницы, между ними листают стрелки. Стрелки и
-   индикатор страниц есть в обеих версиях всегда: проектов будет больше, и
-   элемент управления не должен появляться из ниоткуда при добавлении пятого.
+/* Список проектов — то, с чего начинается третий экран.
 
-   Десктопное и мобильное дерево — два экземпляра <Board> с разным числом
-   контейнеров на странице, каждый со своим состоянием страницы. Так число
-   плиток не зависит от JS-замера ширины и не «прыгает» после гидрации. */
+   На десктопе это страница плитки: 4 контейнера (2×2), лишние проекты уходят
+   на следующие страницы, между ними листают стрелки. Стрелки и индикатор
+   страниц есть всегда: проектов будет больше, и элемент управления не должен
+   появляться из ниоткуда при добавлении пятого.
+
+   На мобиле страниц нет вовсе: все проекты идут одной колонкой, один за
+   другим, и секция становится выше экрана — список проходят обычной
+   прокруткой страницы. Листать нечего, поэтому и стрелок там нет.
+
+   Десктопное и мобильное дерево — два экземпляра <Board> с разными правилами
+   страниц. Так число контейнеров не зависит от JS-замера ширины и не
+   «прыгает» после гидрации. */
 
 const Arrow = ({ dir }: { dir: 'prev' | 'next' }) => (
   <svg width="13" height="11" viewBox="0 0 13 11" fill="none">
@@ -26,26 +31,14 @@ const Arrow = ({ dir }: { dir: 'prev' | 'next' }) => (
   </svg>
 );
 
-const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass, arrowFromTitle, controlsInHead, loopPages }: {
+const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass }: {
   media: MediaItem[][];
   onOpen: (index: number) => void;
-  perPage: number;
+  /* Сколько контейнеров на странице. Не задан — страниц нет: все проекты идут
+     одним списком, и строка листания не рисуется вовсе. */
+  perPage?: number;
   className: string;
   tileSizes: string;
-  /* Сторона стрелок = высота строки заголовка. Считается только там, где
-     заголовок крупный (десктоп): на мобиле t-display дал бы стрелку около
-     32px — мельче комфортного тач-таргета, поэтому там размер свой. */
-  arrowFromTitle?: boolean;
-  /* Управление в шапке (стрелки по краям заголовка) вместо строки внизу: так
-     на мобиле оно не зависит от того, сколько внизу занимает плашка меню и
-     адресная строка браузера. Индикатор страниц при этом не показывается —
-     листание там идёт по кругу, края у списка нет, и штрихи под виньеткой
-     только спорили бы с ней за внимание. */
-  controlsInHead?: boolean;
-  /* Листать по кругу, без края. На мобиле стрелка под большим пальцем должна
-     работать всегда: гаснущая на краю кнопка там читается как поломка. На
-     десктопе край видно по индикатору страниц, и стрелки честно упираются. */
-  loopPages?: boolean;
   /* Заголовок экрана: на десктопе — крупная разрядка t-hero, как на втором
      экране; на мобиле — t-display, которым набраны все мобильные заголовки
      сайта (в t-hero «I Nostri Lavori» разъезжается на две строки). */
@@ -54,87 +47,76 @@ const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass, arrow
   const t = useTranslations('projects');
   const [page, setPage] = useState(0);
 
-  // Заголовок меряем, а не хардкодим его размеры: они зависят от языка (три
-  // локали), кегля на брейке и загрузки Cinzel. Ширина строки задаёт длину
-  // виньетки, высота строки — сторону квадратных стрелок листания.
+  // Шапку меряем, а не хардкодим её размеры: они зависят от языка (три
+  // локали), кегля на брейке и загрузки Cinzel. Ширина строки заголовка задаёт
+  // длину виньетки, высота строки — сторону квадратных стрелок листания, а
+  // высота всей шапки — сколько экрана остаётся контейнерам (мобильный
+  // список считает от неё высоту контейнера).
   // Заголовок набран с разрядкой, и после последней буквы висит лишний
   // интервал — коробка шире надписи. Поэтому длину виньетки берём без него, а
   // сам заголовок сдвигаем на него влево: иначе надпись и виньетка
   // центрировались бы по разным серединам и виньетка ехала бы вправо.
   const titleRef = useRef<HTMLSpanElement | null>(null);
+  const headRef = useRef<HTMLDivElement | null>(null);
   const [title, setTitle] = useState({ w: 0, h: 0, tail: 0 });
+  const [headH, setHeadH] = useState(0);
   useEffect(() => {
     const el = titleRef.current;
-    if (!el) return;
+    const head = headRef.current;
+    if (!el || !head) return;
     // Первый вызов ResizeObserver приходит сразу на observe(), так что
     // отдельного замера при монтировании не нужно.
     const ro = new ResizeObserver(() => {
       const tail = parseFloat(getComputedStyle(el).letterSpacing) || 0;
       setTitle({ w: el.offsetWidth - tail, h: el.offsetHeight, tail });
+      setHeadH(head.offsetHeight);
     });
     ro.observe(el);
+    ro.observe(head);
     return () => ro.disconnect();
   }, []);
 
-  const pages = Math.max(1, Math.ceil(PROJECTS.length / perPage));
+  const paged = perPage !== undefined;
+  const pages = paged ? Math.max(1, Math.ceil(PROJECTS.length / perPage)) : 1;
   // Страницу зажимаем, а не заворачиваем: плитка — это список, у него есть край.
   const at = Math.min(page, pages - 1);
-  const shown = PROJECTS.slice(at * perPage, at * perPage + perPage);
+  const shown = paged ? PROJECTS.slice(at * perPage, at * perPage + perPage) : PROJECTS;
+  const first = paged ? at * perPage : 0;
 
-  const go = (dir: 1 | -1) => setPage(loopPages ? (at + dir + pages) % pages : at + dir);
-  // По кругу стрелка мертва только тогда, когда листать нечего вовсе.
-  const blocked = (dir: 1 | -1) =>
-    loopPages ? pages < 2 : dir < 0 ? at === 0 : at >= pages - 1;
-
-  const prevBtn = (
-    <button className="pf-arrow" onClick={() => go(-1)} disabled={blocked(-1)} aria-label="Previous">
-      <Arrow dir="prev" />
+  const arrow = (dir: 'prev' | 'next') => (
+    <button
+      className="pf-arrow"
+      onClick={() => setPage(at + (dir === 'next' ? 1 : -1))}
+      disabled={dir === 'prev' ? at === 0 : at >= pages - 1}
+      aria-label={dir === 'prev' ? 'Previous' : 'Next'}
+    >
+      <Arrow dir={dir} />
     </button>
-  );
-  const nextBtn = (
-    <button className="pf-arrow" onClick={() => go(1)} disabled={blocked(1)} aria-label="Next">
-      <Arrow dir="next" />
-    </button>
-  );
-  // Индикатор страниц — те же штрихи, что на остальных экранах
-  const dots = (
-    <div className="pf-dots">
-      {Array.from({ length: pages }, (_, i) => (
-        <span
-          key={i} onClick={() => setPage(i)} className="pf-dot"
-          style={{
-            backgroundColor: i === at ? 'var(--color-primary)' : 'var(--color-primary-border)',
-            width: i === at ? '22px' : '12px',
-          }}
-        />
-      ))}
-    </div>
   );
 
   return (
     <div
       className={className}
-      style={arrowFromTitle && title.h
-        ? ({ '--pf-arrow': `${title.h}px` } as React.CSSProperties)
+      style={title.h || headH
+        ? ({
+            '--pf-arrow': `${title.h}px`,
+            '--pf-head': `${headH}px`,
+          } as React.CSSProperties)
         : undefined}
     >
-      <div className="pf-head">
-        <div className="pf-head-row">
-          {controlsInHead && prevBtn}
-          <span ref={titleRef} className={`pf-title ${titleClass}`} style={{ marginRight: -title.tail }}>
-            {t('title')}
-          </span>
-          {controlsInHead && nextBtn}
-        </div>
+      <div ref={headRef} className="pf-head">
+        <span ref={titleRef} className={`pf-title ${titleClass}`} style={{ marginRight: -title.tail }}>
+          {t('title')}
+        </span>
         {/* До замера рисуем прикидочную ширину, а не прячем виньетку: иначе на
-            первой отрисовке её строки нет, и вся плитка встала бы на 16px выше,
-            а после гидрации прыгнула бы вниз. */}
+            первой отрисовке её строки нет, и весь список встал бы на 16px выше,
+            а после гидрации прыгнул бы вниз. */}
         <Flourish w={title.w || 200} curlW={56} color="var(--color-accent1)" />
       </div>
 
       <div className="pf-tiles">
         {shown.map((project, slot) => {
-          const index = at * perPage + slot;
+          const index = first + slot;
           const items = media[index] ?? [];
           const cover = coverOf(items);
           return (
@@ -164,10 +146,21 @@ const Board = ({ media, onOpen, perPage, className, tileSizes, titleClass, arrow
         })}
       </div>
 
-      {!controlsInHead && (
+      {paged && (
         <div className="pf-foot">
-          <div className="pf-arrows">{prevBtn}{nextBtn}</div>
-          {dots}
+          <div className="pf-arrows">{arrow('prev')}{arrow('next')}</div>
+          {/* Индикатор страниц — те же штрихи, что на остальных экранах */}
+          <div className="pf-dots">
+            {Array.from({ length: pages }, (_, i) => (
+              <span
+                key={i} onClick={() => setPage(i)} className="pf-dot"
+                style={{
+                  backgroundColor: i === at ? 'var(--color-primary)' : 'var(--color-primary-border)',
+                  width: i === at ? '22px' : '12px',
+                }}
+              />
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -183,10 +176,6 @@ const PortfolioGrid = ({ media, onOpen }: {
       .pf-board { flex-direction: column; width: 100%; height: 100%; }
 
       .pf-head { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-      /* Строка заголовка. На десктопе в ней только он сам и она центрирует;
-         на мобиле по краям встают стрелки листания, и заголовок остаётся по
-         центру сам собой — стрелки одинаковой ширины. */
-      .pf-head-row { display: flex; width: 100%; align-items: center; justify-content: center; }
       .pf-title { color: var(--color-primary); text-align: center; }
 
       /* Контейнеры забирают всю высоту, что осталась от заголовка и стрелок:
@@ -249,39 +238,53 @@ const PortfolioGrid = ({ media, onOpen }: {
       .pf-dot { display: inline-block; height: 0.5px; cursor: pointer; transition: width 0.3s, background-color 0.3s; }
 
       /* ── Мобайл ──
-         Управление живёт в шапке: стрелки по краям заголовка, точки под
-         виньеткой. Низ экрана для него больше не нужен — а он там и не
-         доставался: секция это 100vh («большой» вьюпорт), плашку меню Chrome
-         на Android прибивает к ВИДИМОМУ низу, и разница между этими низами —
-         высота адресной строки, около 55px, — съедала почти весь резерв.
-         Строка со стрелками уходила под меню целиком. */
+         Проекты идут одной колонкой, все сразу: страниц нет, листать нечем и
+         незачем. Секция от этого становится выше экрана — список проходят
+         обычной прокруткой страницы.
+
+         Высота контейнера остаётся прежней, «двухплиточной»: экран минус
+         отступы, шапка и зазор, пополам. Так первый экран списка выглядит
+         ровно как раньше, а остальные проекты продолжают его ниже.
+
+         Нижний отступ — резерв под плашку меню: она position: fixed и прибита
+         к ВИДИМОМУ низу, а секция это 100vh («большой» вьюпорт). Разница между
+         этими низами — высота адресной строки, около 55px, — и входит в резерв,
+         иначе подпись последнего проекта оказывается под меню. */
       .pf-board--mob {
-        padding: 28px 16px 84px;
-        --pf-arrow: 41.6px;
+        --pf-pad-top: 28px;
+        --pf-pad-bottom: 84px;
+        --pf-pad-x: 16px;
         --pf-step: 12px;
+        padding: var(--pf-pad-top) var(--pf-pad-x) var(--pf-pad-bottom);
+        height: auto;
+        min-height: 100vh;
       }
-      .pf-board--mob .pf-head-row { justify-content: space-between; gap: var(--pf-step); }
-      /* Виньетка отбита поровну: сверху до строки заголовка, снизу до плитки —
-         по два шага. Шаг тот же, что и зазор между плитками, как на десктопе. */
+      /* Виньетка отбита поровну: сверху до строки заголовка, снизу до первого
+         контейнера — по два шага. Шаг тот же, что и зазор между контейнерами,
+         как на десктопе. */
       .pf-board--mob .pf-head { gap: calc(var(--pf-step) * 2); }
-      /* Стрелки в шапке — золотом виньеток: они стоят вплотную к ней и к
-         заголовку, и общий цвет собирает шапку в одну группу. */
-      .pf-board--mob .pf-arrow { border-color: var(--color-accent1); }
       .pf-board--mob .pf-tiles {
+        flex: none;
         grid-template-columns: 1fr;
+        grid-template-rows: none;
+        /* Из экрана вычитается всё, что контейнерам не принадлежит: отступы,
+           шапка (--pf-head приносит ResizeObserver — до первого замера работает
+           запасное значение) и два шага её нижней отбивки. Остаток делится
+           надвое за вычетом зазора между контейнерами. */
+        grid-auto-rows: calc(
+          (100vh - var(--pf-pad-top) - var(--pf-pad-bottom) - var(--pf-head, 72px)
+            - var(--pf-step) * 3) / 2
+        );
         gap: var(--pf-step);
         margin: calc(var(--pf-step) * 2) 0 0;
       }
       .pf-board--mob .pf-cap { padding: 14px 16px; }
 
-      /* Занятый низ считаем, а не угадываем: плашка меню (56px) со своим
-         отступом (12px) и просветом до неё, жестовая полоса и то самое
-         расхождение вьюпортов. Иначе подпись нижней плитки оказывается под
-         меню. В скобках — ноль на десктопе и в браузерах без выезжающей
-         панели. Запасное значение выше остаётся там, где нет svh. */
+      /* Ноль там, где выезжающей панели нет; запасное значение выше остаётся
+         для браузеров без svh. */
       @supports (height: 100svh) {
         .pf-board--mob {
-          padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px) + (100vh - 100svh));
+          --pf-pad-bottom: calc(80px + env(safe-area-inset-bottom, 0px) + (100vh - 100svh));
         }
       }
 
@@ -302,10 +305,10 @@ const PortfolioGrid = ({ media, onOpen }: {
         .pf-board--desk .pf-cap { padding: var(--pf-step); gap: calc(var(--pf-step) / 4); }
       }
 
-      /* Компактный вьюпорт (узкий ИЛИ низкий): воздух вокруг плитки урезаем,
+      /* Компактный вьюпорт (узкий ИЛИ низкий): воздух вокруг списка урезаем,
          сами контейнеры от этого только выигрывают в высоте. */
       /* Низ не трогаем — он считается выше и от компактности не зависит. */
-      :where(html[data-vp]) .pf-board--mob { padding-top: 18px; padding-left: 12px; padding-right: 12px; --pf-step: 10px; }
+      :where(html[data-vp]) .pf-board--mob { --pf-pad-top: 18px; --pf-pad-x: 12px; --pf-step: 10px; }
       :where(html[data-vp]) .pf-board--mob .pf-cap { padding: 10px 12px; gap: 4px; }
       @media (min-width: 1023px) {
         /* Ужимается сам шаг — вместе с ним пропорционально садятся все
@@ -316,12 +319,12 @@ const PortfolioGrid = ({ media, onOpen }: {
 
     <Board
       media={media} onOpen={onOpen} perPage={4} tileSizes="40vw"
-      titleClass="t-hero tracking-[0.24em]" arrowFromTitle
+      titleClass="t-hero tracking-[0.24em]"
       className="pf-board pf-board--desk hidden desktop:flex"
     />
     <Board
-      media={media} onOpen={onOpen} perPage={2} tileSizes="100vw"
-      titleClass="t-display" controlsInHead loopPages
+      media={media} onOpen={onOpen} tileSizes="100vw"
+      titleClass="t-display"
       className="pf-board pf-board--mob flex desktop:hidden"
     />
   </div>
