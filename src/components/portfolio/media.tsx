@@ -41,12 +41,16 @@ export const PlayBadge = ({ size }: { size: number }) => (
 // дойдут: Chrome на Android без него держит элемент чёрным, пока
 // воспроизведение реально не начнётся. Уходя из крупного, перематываем на
 // начало, чтобы при следующем показе видео начиналось сначала.
-export const MediaLayer = ({ item, active, sizes, priority, objectPosition = 'left center', onRatio }: {
+export const MediaLayer = ({ item, active, sizes, priority, objectPosition = 'left center', fit = 'cover', onRatio }: {
   item: MediaItem;
   active: boolean;
   sizes: string;
   priority?: boolean;
   objectPosition?: string;
+  /* Как кадр садится в слот. cover (по умолчанию) — слот важнее кадра:
+     мозаика, плитки, мобильный слот проекта. contain — кадр важнее слота:
+     полноэкранный просмотр (viewer.tsx), где резать нечего и незачем. */
+  fit?: 'cover' | 'contain';
   onRatio?: (landscape: boolean) => void;
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -103,8 +107,8 @@ export const MediaLayer = ({ item, active, sizes, priority, objectPosition = 'le
         }}
         style={{
           position: 'absolute', inset: 0, width: '100%', height: '100%',
-          objectFit: portrait ? 'contain' : 'cover',
-          objectPosition: portrait ? 'center' : objectPosition,
+          objectFit: fit === 'contain' || portrait ? 'contain' : 'cover',
+          objectPosition: fit === 'contain' || portrait ? 'center' : objectPosition,
           cursor: active && !controls ? 'pointer' : 'default',
         }}
       />
@@ -120,7 +124,7 @@ export const MediaLayer = ({ item, active, sizes, priority, objectPosition = 'le
       fill
       sizes={sizes}
       priority={priority}
-      style={{ objectFit: 'cover', objectPosition }}
+      style={{ objectFit: fit, objectPosition: fit === 'contain' ? 'center' : objectPosition }}
       onLoad={e => onRatio?.(e.currentTarget.naturalWidth > e.currentTarget.naturalHeight)}
     />
   );

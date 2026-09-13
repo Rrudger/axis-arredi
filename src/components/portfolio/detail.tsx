@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import CtaButton from '@/components/ui/cta-button';
 import Flourish from '@/components/ui/flourish';
 import { MediaLayer, PlayBadge, type MediaItem } from '@/components/portfolio/media';
+import PhotoViewer from '@/components/portfolio/viewer';
 import { PROJECTS } from '@/lib/projects';
 
 // «Rubio Monocoat» в любом описании — ссылка на официальный сайт бренда в Италии.
@@ -29,6 +30,18 @@ const linkRubio = (text: string) =>
     ),
   );
 
+/* Значок «кадр открывается во весь экран»: уголки, расходящиеся из квадрата.
+   Рамка золотая, как у кнопок «назад» и «…», — читается как управление, а не
+   как украшение на фото. Кликов не ловит: нажатие обрабатывает сам кадр,
+   и значок не должен отнимать у него площадь. */
+const ZoomBadge = () => (
+  <span className="s3-zoom" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M1 5V1h4M9 1h4v4M13 9v4H9M5 13H1V9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  </span>
+);
+
 /* Страница одного проекта: ровно то, что раньше показывал третий экран
    целиком, — мозаика медиа + текстовая панель. Листания проектов здесь нет:
    вместо двух стрелок и точек одна стрелка «назад», к плитке. Список медиа
@@ -50,6 +63,9 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
   const [mobileActive, setMobileActive] = useState(0);
   const [mobileDir, setMobileDir] = useState<'left' | 'right'>('left');
   const [touchStart, setTouchStart] = useState<number | null>(null);
+  // Кадр, открытый во весь экран (viewer.tsx), или null. Хранится индексом в
+  // curMedia — один и тот же для обеих раскладок, так что слой общий.
+  const [viewer, setViewer] = useState<number | null>(null);
   const advanceBlocked = useRef(false);
   const expandBlocked = useRef(false);
 
@@ -126,6 +142,9 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
   // заворотом, поэтому каждый шаг реально сдвигает ленту (нет краёв, где она
   // упирается). mobSwiped гасит ложный тап по превью после свайпа.
   const mobSwiped = useRef(false);
+  // То же самое для крупного кадра: свайп по нему листает, и следующий за
+  // жестом click не должен открыть полноэкранный просмотр.
+  const photoSwiped = useRef(false);
   const mobileGo = (dir: 1 | -1) => {
     const n = curMedia.length;
     if (n === 0) return;
@@ -139,6 +158,18 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
   const mobileThumbTap = (slot: number) => {
     if (slot === 1) return;
     mobileGo(slot < 1 ? -1 : 1);
+  };
+
+  // Выходя из полноэкранного просмотра, раскладка встаёт на тот кадр, на
+  // котором вышли: на десктопе он становится крупным в мозаике (offset — как
+  // раз индекс крупного), на мобиле — активным. Иначе возврат отбрасывал бы к
+  // тому месту серии, откуда просмотр начали. Наведение снимаем: курсор за
+  // время просмотра мог уйти с кадра, а крупный слот остался бы раскрытым.
+  const closeViewer = (last: number) => {
+    setViewer(null);
+    setOffset(last);
+    setMobileActive(last);
+    setLargeHovered(false);
   };
 
   // Наведение на миниатюру (позиция p = 1..3): она уходит в крупное, а окно
@@ -236,6 +267,26 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
           transition: color 0.2s;
         }
         .s3-link:hover { color: var(--color-accent1); }
+
+        /* Значок «во весь экран» в углу крупного кадра. На тач-экране он виден
+           всегда — подсказки наведением там нет; там, где есть курсор,
+           проявляется на кадре. Углы отбиты тем же шагом, что у пояса
+           миниатюр под фото. */
+        .s3-zoom {
+          position: absolute; top: 10px; right: 10px; z-index: 4;
+          width: 32px; height: 32px;
+          display: flex; align-items: center; justify-content: center;
+          color: var(--color-overlay-88);
+          background: var(--color-scrim);
+          border: 1px solid var(--color-accent1);
+          pointer-events: none;
+          transition: opacity 0.25s;
+        }
+        @media (hover: hover) {
+          .s3-zoom { opacity: 0; }
+          .s3-frame:hover .s3-zoom { opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) { .s3-zoom { transition: none; } }
 
         /* desktop container padding (mobile = 0) */
         @media (min-width: 1023px) {
@@ -353,6 +404,7 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
             return (
               <div
                 key={photoIdx}
+                className={isLarge ? 's3-frame' : undefined}
                 style={{
                   position: 'absolute',
                   left: pos.left, top: pos.top, width: pos.width, height: pos.height,
@@ -360,7 +412,7 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
                   opacity: parked ? 0 : 1,
                   transition: 'left 0.55s cubic-bezier(0.4,0,0.2,1), top 0.55s cubic-bezier(0.4,0,0.2,1), width 0.55s cubic-bezier(0.4,0,0.2,1), height 0.55s cubic-bezier(0.4,0,0.2,1), opacity 0.55s ease',
                   zIndex: isLarge ? (largeHovered ? 10 : 3) : parked ? 0 : 1,
-                  cursor: isThumb ? 'pointer' : 'default',
+                  cursor: isThumb ? 'pointer' : isLarge && item.type === 'image' ? 'zoom-in' : 'default',
                   pointerEvents: parked ? 'none' : 'auto',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   overflow: 'hidden',
@@ -368,7 +420,13 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
                 }}
                 onMouseEnter={isLarge ? () => { if (!expandBlocked.current && isLandscape[photoIdx]) setLargeHovered(true); } : isThumb ? () => advance(p) : undefined}
                 onMouseLeave={isLarge ? () => setLargeHovered(false) : undefined}
-                onClick={isThumb ? () => advance(p) : undefined}
+                onClick={
+                  isThumb ? () => advance(p)
+                  // У видео свой клик (пауза и нативные контролы, там же и
+                  // полный экран плеера) — он до нас не доходит и не должен.
+                  : isLarge && item.type === 'image' ? () => setViewer(photoIdx)
+                  : undefined
+                }
                 onTransitionEnd={isLarge ? () => { expandBlocked.current = false; } : undefined}
               >
                 {showMedia && (
@@ -381,6 +439,7 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
                       onRatio={landscape => setIsLandscape(prev => ({ ...prev, [photoIdx]: landscape }))}
                     />
                     {item.type === 'video' && isThumb && <PlayBadge size={22} />}
+                    {isLarge && item.type === 'image' && <ZoomBadge />}
                   </>
                 )}
               </div>
@@ -411,13 +470,22 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
           {/* Large photo — занимает верх половины минус пояс миниатюр.
              В раскрытом виде клик по фото сворачивает панель. */}
           <div
-            style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden', background: 'var(--color-primary-dark)', cursor: expanded ? 'pointer' : 'default' }}
-            onClick={expanded ? () => setExpanded(false) : undefined}
-            onTouchStart={e => { if (expanded) return; setTouchStart(e.touches[0].clientX); }}
+            className="s3-frame"
+            style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden', background: 'var(--color-primary-dark)',
+              cursor: expanded ? 'pointer' : curMedia[mobileActive]?.type === 'image' ? 'zoom-in' : 'default' }}
+            onClick={() => {
+              // В раскрытом виде кадр — это «свернуть панель», и только.
+              if (expanded) { setExpanded(false); return; }
+              // Click приходит следом за свайпом: жест уже пролистал кадр,
+              // открывать его во весь экран тем же касанием не надо.
+              if (photoSwiped.current) { photoSwiped.current = false; return; }
+              if (curMedia[mobileActive]?.type === 'image') setViewer(mobileActive);
+            }}
+            onTouchStart={e => { if (expanded) return; photoSwiped.current = false; setTouchStart(e.touches[0].clientX); }}
             onTouchEnd={e => {
               if (expanded || touchStart === null) return;
               const dx = touchStart - e.changedTouches[0].clientX;
-              if (Math.abs(dx) > 40) dx > 0 ? mobileNextPhoto() : mobilePrevPhoto();
+              if (Math.abs(dx) > 40) { photoSwiped.current = true; dx > 0 ? mobileNextPhoto() : mobilePrevPhoto(); }
               setTouchStart(null);
             }}
           >
@@ -437,6 +505,7 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
                 </div>
               )}
             </div>
+            {!expanded && curMedia[mobileActive]?.type === 'image' && <ZoomBadge />}
           </div>
 
           {/* Thumbnail strip — окно из 4 превью, активное на 2‑й позиции;
@@ -571,6 +640,11 @@ const ProjectDetail = ({ index, media, onBack, onContact }: Props) => {
         </div>
 
       </div>
+
+      {/* Полноэкранный кадр — поверх обеих раскладок, порталом на <body>. */}
+      {viewer !== null && (
+        <PhotoViewer items={curMedia} index={viewer} onClose={closeViewer} />
+      )}
 
     </div>
   );
