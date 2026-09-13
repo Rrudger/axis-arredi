@@ -12,10 +12,11 @@
 export type ProjectDef = { slug: string; dir: string; key: string };
 
 export const PROJECTS: ProjectDef[] = [
-  { slug: 'kitchen',   dir: 'kitchen',          key: 'project1' },
-  { slug: 'wine-unit', dir: 'vine',             key: 'project2' },
-  { slug: 'dovetail',  dir: 'coda di rondine',  key: 'project3' },
-  { slug: 'raffia',    dir: 'rafia',            key: 'project4' },
+  { slug: 'kitchen',          dir: 'kitchen',           key: 'project1' },
+  { slug: 'wine-unit',        dir: 'vine',              key: 'project2' },
+  { slug: 'dovetail',         dir: 'coda di rondine',   key: 'project3' },
+  { slug: 'raffia',           dir: 'rafia',             key: 'project4' },
+  { slug: 'tinted-boiserie',  dir: 'boiserie colored',  key: 'project5' },
 ];
 
 export const PROJECT_DIRS = PROJECTS.map(p => p.dir);
