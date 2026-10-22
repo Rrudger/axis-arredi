@@ -1054,8 +1054,9 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
             Взаимодействие — на зонах-оверлеях, клик открывает Google Maps.
 
             Файл уже в градациях серого, поэтому CSS-фильтра нет.
-            Снимок отцентрован на 43.5996474, 11.0519248 (via Chinigiano,
-            Tresanti), охват ~1.8 км. Геометрия ниже ставит центр снимка
+            Снимок отцентрован на 43.734432, 10.798709 (via Guglielmo
+            Marconi 6, Fucecchio — центр участка: foglio 50, part. 382),
+            охват ~1.8 км. Геометрия ниже ставит центр снимка
             ровно в точку 73%/73% контейнера, где стоит маркер: при
             width/height 120% и смещении 13% центр = 13+60 = 73%, при
             180% и -17% центр = -17+90 = 73%. Менять эти числа парами. */}
@@ -1075,7 +1076,7 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
             {/* objectFit: cover держит центр снимка в центре элемента при
                 любой пропорции вьюпорта — иначе маркер уехал бы с места. */}
             <Image
-              src="/images/map/montespertoli.webp"
+              src="/images/map/fucecchio.webp"
               alt=""
               fill
               sizes={isMobile ? '180vw' : '120vw'}
@@ -1167,7 +1168,7 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
       {/* ── Кликабельная зона карты (десктоп): клик открывает Google Maps ── */}
       {!isMobile && (
         <div
-          onClick={() => window.open('https://maps.google.com/maps?q=via+Chinigiano+10+Montespertoli', '_blank', 'noopener,noreferrer')}
+          onClick={() => window.open('https://maps.google.com/maps?q=via+Guglielmo+Marconi+6+Fucecchio', '_blank', 'noopener,noreferrer')}
           style={{
             position: 'absolute',
             inset: 0,
@@ -1181,7 +1182,7 @@ const Contacts = forwardRef<HTMLDivElement>((_, ref) => {
       {/* ── Кликабельная зона тёмного треугольника (закрытое состояние) ── */}
       {isMobile && !isOpen && (
         <div
-          onClick={() => window.open('https://maps.google.com/maps?q=via+Chinigiano+10+Montespertoli', '_blank', 'noopener,noreferrer')}
+          onClick={() => window.open('https://maps.google.com/maps?q=via+Guglielmo+Marconi+6+Fucecchio', '_blank', 'noopener,noreferrer')}
           style={{
             position: 'absolute',
             inset: 0,
